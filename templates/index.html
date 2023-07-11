@@ -1,10 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Welcome</title>
-  </head>
-  <body>
-
-  </body>
+<html>
+<head>
+    <title>Home Page</title>
+</head>
+<body>
+    <h1>Welcome to our Quiz Application!</h1>
+    <p>Please <a href="{{ url_for('login') }}">log in</a> to get started.</p>
+    <button onclick="location.href='{{ url_for('view_account') }}'" type="button">View Account</button>
+    <button onclick="location.href='{{ url_for('view_all_quizzes') }}'" type="button">View All Quizzes</button>
+    <button onclick="location.href='{{ url_for('edit_quiz') }}'" type="button">Create/Edit Quiz</button>
+    <button onclick="location.href='{{ url_for('view_all_scores') }}'" type="button">View All Scores</button>
+</body>
 </html>
