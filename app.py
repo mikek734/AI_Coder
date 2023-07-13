@@ -1,11 +1,26 @@
 from flask import Flask, render_template
+from flask_mail import Mail, Message
 
 app = Flask(__name__)
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'your-email@gmail.com'
+app.config['MAIL_PASSWORD'] = 'your-password'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+
+mail = Mail(app)
 
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/home')
+def home():
+    return render_template('home.html')
 
 
 @app.route('/login')
