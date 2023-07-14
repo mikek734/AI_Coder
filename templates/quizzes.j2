@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="quiz-header">
+  <h1>Quizzes</h1>
+
+  <a href="{{ url_for('new_quiz') }}" class="btn">Create Quiz</a>
+</div>
+
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Questions</th>
+    <th>Last Modified</th>
+    <th>Scores</th>
+  </tr>
+
+  {% for quiz in quizzes %}
+  <tr>
+    <td>{{ quiz.name }}</td>
+    <td>{{ quiz.num_questions }}</td>
+    <td>{{ quiz.modified_date }}</td>
+    <td>
+      <a href="{{ url_for('quiz_scores', quiz_id=quiz.id) }}">
+        View Scores
+      </a>
+    </td>
+  </tr>
+  {% endfor %}
+
+</table>
+
+{% endblock %}
