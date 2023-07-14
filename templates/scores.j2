@@ -1,0 +1,22 @@
+<table>
+    <thead>
+        <tr>
+            <th>Candidate Name</th>
+            <th>Percent Score</th>
+            <th>Raw Score</th>
+            <th>Time Taken</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for score in scores %}
+        <tr>
+            <td>{{ score.candidate_name }}</td>
+            <td>{{ score.percent_score }}</td>
+            <td>{{ score.raw_score }}</td>
+            <td>{{ score.time_taken }}</td>
+            <td><a href="/scores/{{ score.id }}">View Individual Score</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
