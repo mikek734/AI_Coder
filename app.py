@@ -1,12 +1,13 @@
 from flask import Flask, render_template
 from flask_mail import Mail, Message
+from config import PASSWORD, EMAIL
 
 app = Flask(__name__)
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'your-email@gmail.com'
-app.config['MAIL_PASSWORD'] = 'your-password'
+app.config['MAIL_USERNAME'] = EMAIL
+app.config['MAIL_PASSWORD'] = PASSWORD
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
@@ -61,6 +62,14 @@ def view_all_scores():
 @app.route('/score/<int:score_id>')
 def view_score(score_id):
     return render_template('score.html', score_id=score_id)
+
+
+@app.route('/send_email', methods=['POST'])
+def send_email():
+    msg = Message('Hello', sender=EMAIL, recipients=['kennedm4@oregonstate.edu'])
+    msg.body = "This is the email body"
+    mail.send(msg)
+    return "Email has been sent!"
 
 
 if __name__ == "__main__":
