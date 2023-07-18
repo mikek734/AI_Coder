@@ -25,7 +25,7 @@
       <td>2023-07-01</td>
       <td><a href="quiz_scores_1.html">View Scores</a></td>
       <td><button onclick="editQuiz(1)">Edit</button></td>
-      <td><button onclick="shareQuiz(1)">Share</button></td>
+      <td><button id="shareQuiz(1)">Share</button></td>
     </tr>
     <tr>
       <td>Web Development</td>
@@ -46,6 +46,16 @@
     <!-- Add more rows for additional quizzes -->
   </tbody>
 </table>
+
+
+<script>
+  document.getElementById('shareQuiz(1)').addEventListener('click', function() {
+      fetch('/send_email', {method: 'POST'})
+      .then(response => response.text())
+      .then(data => alert(data));
+  });
+</script>
+
 
 </body>
 </html>
