@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View All Quizzes</title>
+</head>
+<body>
+    <h1>All Quizzes</h1>
+    <!-- Quiz list here -->
+    <button onclick="location.href='{{ url_for('home') }}'" type="button">Back to Home</button>
+    <table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Number of Questions</th>
+      <th>Last Modified</th>
+      <th>Quiz Scores</th>
+      <th>Edit</th>
+      <th>Share</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Linked Lists</td>
+      <td>10</td>
+      <td>2023-07-01</td>
+      <td><a href="quiz_scores_1.html">View Scores</a></td>
+      <td><button onclick="editQuiz(1)">Edit</button></td>
+      <td><button id="shareQuiz(1)">Share</button></td>
+    </tr>
+    <tr>
+      <td>Web Development</td>
+      <td>15</td>
+      <td>2023-06-25</td>
+      <td><a href="quiz_scores_2.html">View Scores</a></td>
+      <td><button onclick="editQuiz(2)">Edit</button></td>
+      <td><button onclick="shareQuiz(2)">Share</button></td>
+    </tr>
+    <tr>
+      <td>Arrays and Strings</td>
+      <td>20</td>
+      <td>2023-10-11</td>
+      <td><a href="quiz_scores_2.html">View Scores</a></td>
+      <td><button onclick="editQuiz(2)">Edit</button></td>
+      <td><button onclick="shareQuiz(2)">Share</button></td>
+    </tr>
+    <!-- Add more rows for additional quizzes -->
+  </tbody>
+</table>
+
+
+<script>
+  document.getElementById('shareQuiz(1)').addEventListener('click', function() {
+      fetch('/send_email', {method: 'POST'})
+      .then(response => response.text())
+      .then(data => alert(data));
+  });
+</script>
+
+
+</body>
+</html>
