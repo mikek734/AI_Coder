@@ -1,4 +1,6 @@
 Flask==2.2.2
 google-cloud-datastore==2.8.2
 flask-mail==0.9.1
-
+pandas
+matplotlib
+jinja2

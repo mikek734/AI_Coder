@@ -185,6 +185,7 @@ def quiz_list():
 
     return render_template('quiz_list.html', quizzes=quizzes)
 
+
 @app.route('/scores')
 def scores():
     scores = []
@@ -205,6 +206,7 @@ def scores():
         scores.append(score)
 
     return render_template('scores.j2', scores=scores)
+
 
 @app.route('/score/<username>')
 def score(username):
