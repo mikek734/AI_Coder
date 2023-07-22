@@ -1,0 +1,20 @@
+<!-- update_picture.html -->
+
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2>Update Picture</h2>
+
+<form method="POST">
+
+  <label>Picture URL:</label>
+  <input name="picture" value="{{ user.picture }}">
+
+  <button type="submit">Update</button>
+
+</form>
+
+<a href="{{ url_for('user_profile', sub=sub) }}">Cancel</a>
+
+{% endblock %}
