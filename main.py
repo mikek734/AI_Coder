@@ -25,7 +25,6 @@ app.config['MAIL_USE_SSL'] = False
 
 mail = Mail(app)
 
-
 # Auth0 configuration
 oauth = OAuth(app)
 auth0 = oauth.register(
@@ -47,6 +46,7 @@ def login_required(f):
         if 'profile' not in session:
             return redirect('/login')
         return f(*args, **kwargs)
+
     return decorated
 
 
@@ -156,8 +156,10 @@ def view_score(score_id):
 
 @app.route('/send_email', methods=['POST'])
 def send_email():
-    msg = Message('Hello', sender=EMAIL, recipients=['kennedm4@oregonstate.edu'])
-    msg.body = "This is the email body"
+    msg = Message('Technical Job Quiz', sender=EMAIL, recipients=['chuckie@cheese.com'])
+    msg.body = 'Someone at "organization" has requested that you take the following quiz to test your programming ' \
+               'capabilities for employment: "quiz_name". Please click the following to take the quiz: ' \
+               'https://your-app-url.com/quiz/quiz_id '
     mail.send(msg)
     return "Email has been sent!"
 
@@ -179,7 +181,7 @@ def quiz_list():
         }
         quizzes.append(quiz)
 
-    return render_template('quiz_list.html', quizzes=quizzes)
+    return render_template('quizzes.j2', quizzes=quizzes)
 
 
 @app.route('/scores')
@@ -236,7 +238,7 @@ def score(username):
         percent=percent,
         time=time,
         plot_url=plot_url
-        )
+    )
 
 
 if __name__ == "__main__":
