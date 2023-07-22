@@ -25,10 +25,6 @@ app.config['MAIL_USE_SSL'] = False
 
 mail = Mail(app)
 
-# Auth0 configuration
-app.config['AUTH0_CLIENT_ID'] = 'CLIENT_ID'
-app.config['AUTH0_CLIENT_SECRET'] = 'CLIENT_SECRET'
-app.config['AUTH0_DOMAIN'] = 'YOUR_DOMAIN.auth0.com'
 
 # Auth0 configuration
 oauth = OAuth(app)
