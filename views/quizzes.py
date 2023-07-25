@@ -2,6 +2,7 @@ from main import request, json, jsonify, make_response
 from main import datastore
 from jwt import *
 from flask import Blueprint
+from datetime import datetime
 
 client = datastore.Client()
 USERS = "users"
@@ -17,24 +18,27 @@ view_quizzes = Blueprint('view_quizzes', __name__)
 @view_quizzes.route('/quizzes', methods=['POST', 'GET'])
 def quizzes_get_post():
     if request.method == 'POST':
+        quiz_name = request.form.get('QuizName')
+        number_of_questions = request.form.get('NumberOfQuestions')
+        last_modified = str(datetime.now())
+        user_id = None#from JWT?
 
         # TODO
         # Verify JWT First
-        data = request.get_json()
 
-        if not isinstance(data['QuizName'], str):
+        if not isinstance(quiz_name, str):
             return jsonify({'error': 'Quiz name must be a string'}), 400
 
-        if not isinstance(data['NumberOfQuestions'], str):
+        if not isinstance(number_of_questions, str):
             return jsonify({'error': 'Number of questions must be a string'}), 400
 
-        if not isinstance(data['LastModified'], str):
+        if not isinstance(last_modified, str):
             return jsonify({'error': 'Last modified must be a string'}), 400
 
-        if not isinstance(data['UserID'], int):
+        if not isinstance(user_id, int):
             return jsonify({'error': 'User ID must be an integer'}), 400
 
-        user_key = client.key(USERS, data['UserID'])
+        user_key = client.key(USERS, user_id)
         user = client.get(user_key)
 
         if not user:

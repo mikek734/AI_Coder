@@ -7,7 +7,5 @@
     <h1>Application Homepage!</h1>
     <button onclick="location.href='{{ url_for('user_profile', sub=profile['user_id']) }}'" type="button">View Account</button>
     <button onclick="location.href='{{ url_for('quiz_list') }}'" type="button">View All Quizzes</button>
-    <button onclick="location.href='{{ url_for('edit_quiz') }}'" type="button">Create/Edit Quiz</button>
-    <button onclick="location.href='{{ url_for('scores') }}'" type="button">View All Scores</button>
 </body>
 </html>

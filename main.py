@@ -303,9 +303,9 @@ def view_all_quizzes():
     return render_template('view_all_quizzes.html')
 
 
-@app.route('/quiz/edit')
-def edit_quiz():
-    return render_template('edit_quiz.html')
+@app.route('/create_quiz')
+def create_quiz():
+    return render_template('create_quiz.j2')
 
 
 @app.route('/scores')
