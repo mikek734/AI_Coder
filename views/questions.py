@@ -24,7 +24,7 @@ def questions_get_post():
         if not isinstance(data['QuizID'], int):
             return jsonify({'error': 'Quiz ID must be an integer'}), 400
 
-        quiz_key = client.key(QUIZZES, data['QuizID'])
+        quiz_key = client.key(QUIZZES, int(data['QuizID']))
         if not client.get(quiz_key):
             return jsonify({'error': 'Invalid quiz ID'}), 400
 
@@ -39,12 +39,12 @@ def questions_get_post():
             }
         )
 
+        client.put(new_question)
+
         # Update Quiz Entity to maintain referential integrity
         quiz = client.get(quiz_key)
         quiz['QuestionIDs'].append(new_question.id)
         client.put(quiz)
-
-        client.put(new_question)
 
         return jsonify(question_to_dict(new_question)), 201
 
@@ -58,8 +58,7 @@ def question_to_dict(question):
     return {
         'QuestionID': question.id,
         'QuestionText': question['QuestionText'],
-        'QuizID': question['QuizID'],
-        'AnswerIDs': question['AnswerIDs']
+        'QuizID': question['QuizID']
     }
 
 
@@ -69,7 +68,7 @@ def get_quiz_questions(quiz_id):
 
     if request.method == 'GET':
 
-        quiz = client.get(client.key(QUIZZES, quiz_id))
+        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
 
         quiz_name = quiz['QuizName']
         questions = []
@@ -88,7 +87,9 @@ def get_quiz_questions(quiz_id):
                 answer_set.append(answer['AnswerText'])
             answers.append(answer_set)
 
-        return render_template("questions.j2", quiz_name=quiz_name, questions=questions, answers=answers), 200
+        return jsonify([question_to_dict(q) for q in questions]), 200
+        #TODO
+        #return render_template("questions.j2", quiz_name=quiz_name, questions=questions, answers=answers), 200
 
 
 # POST or DELETE a Quiz Question

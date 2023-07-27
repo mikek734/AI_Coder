@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h1>All Scores for {{ quiz_name }}</h1>
+<h1>All Scores for Quiz: {{ quiz_name }}</h1>
 
 <table>
   <thead>
@@ -20,7 +20,12 @@
       <td>{{ score.CandidateName }}</td>
       <td>{{ score.PercentScore }}</td>
       <td>{{ score.RawScore }}</td>
-      <td>{{ score.TimeTaken }}%</td>
+      <td>{{ score.TimeTaken }}</td>
+          <td>
+        <a href="{{ url_for('view_scores.delete_get_score', quiz_id=score.QuizID, score_id=score.id) }}">
+        View Score
+        </a>
+      </td>
     </tr>
     {% endfor %}
   </tbody>

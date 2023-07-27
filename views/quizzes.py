@@ -47,7 +47,7 @@ def quizzes_get_quiz(quiz_id):
         if not isinstance(data['QuizID'], int):
             return jsonify({'error': 'Quiz ID must be an integer'}), 400
 
-        quiz_key = client.key(QUIZZES, quiz_id)
+        quiz_key = client.key(QUIZZES, int(quiz_id))
         if not client.get(quiz_key):
             return jsonify({'error': 'Invalid quiz ID'}), 400
 
@@ -60,16 +60,16 @@ def quizzes_get_quiz(quiz_id):
                 'PercentScore': data['PercentScore'],
                 'RawScore': data['RawScore'],
                 'TimeTaken': data['TimeTaken'],
-                'QuizID': quiz_id
+                'QuizID': int(quiz_id)
             }
         )
 
+        client.put(new_score)
+
         # Update Quiz Entity to maintain referential integrity
         quiz = client.get(quiz_key)
-        quiz['score_ids'].append(new_score.id)
+        quiz['ScoreIDs'].append(new_score.id)
         client.put(quiz)
-
-        client.put(new_score)
 
         scores = []
         for score_id in quiz['ScoreIDs']:
@@ -82,7 +82,7 @@ def quizzes_get_quiz(quiz_id):
 
     elif request.method == 'GET':
 
-        quiz = client.get(client.key(QUIZZES, quiz_id))
+        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
 
         quiz_name = quiz['QuizName']
         questions = []
@@ -95,11 +95,11 @@ def quizzes_get_quiz(quiz_id):
 
         # Second, call the Answer Choices of each Question and add them to the results
         for question in questions:
-            answer_set = []
+            choices = []
             for answer_id in question['AnswerIDs']:
                 answer = client.get(client.key(ANSWERS, answer_id))
-                answer_set.append(answer['AnswerText'])
-            answers.append(answer_set)
+                choices.append(answer['AnswerText'])
+            answers.append(choices)
 
         return render_template("questions.j2", quiz_name=quiz_name, questions=questions, answers=answers), 200
 
@@ -119,7 +119,7 @@ def quizzes_post():
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
 
-        user_key = client.key(USERS, data['UserID'])
+        user_key = client.key(USERS, int(data['UserID']))
         user = client.get(user_key)
 
         if not user:
@@ -148,7 +148,7 @@ def quizzes_delete_put_patch(quiz_id):
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
 
-        key = client.key(QUIZZES, quiz_id)
+        key = client.key(QUIZZES, int(quiz_id))
         quiz = client.get(key)
 
         quiz = update_quiz(quiz, data)
@@ -166,7 +166,7 @@ def quizzes_delete_put_patch(quiz_id):
             return jsonify({'error': str(e)}), 400
 
         quiz = create_quiz(data)
-        key = client.key(QUIZZES, quiz_id)
+        key = client.key(QUIZZES, int(quiz_id))
         quiz.key = key
 
         client.put(quiz)
@@ -184,7 +184,7 @@ def quizzes_delete_put_patch(quiz_id):
                 client.put(user)
 
         # Delete all Questions and Answers associated with Quiz
-        quiz = client.get(client.key(QUIZZES, quiz_id))
+        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
         query = client.query(kind=QUESTIONS)
         questions = list(query.fetch())
         for question in questions:
@@ -202,7 +202,7 @@ def quizzes_delete_put_patch(quiz_id):
     elif request.method == 'GET':
 
         # TODO
-        quiz = []
+        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
         questions = []
         answers = []
 
@@ -263,7 +263,7 @@ def add_delete_quiz_from_user(user_id, quiz_id):
     if request.method == 'POST':
 
         # POST Quiz to User Entity
-        user_key = client.key(USERS, user_id)
+        user_key = client.key(USERS, int(user_id))
         user = client.get(user_key)
 
         if quiz_id not in user['QuizIDs']:
@@ -282,12 +282,12 @@ def add_delete_quiz_from_user(user_id, quiz_id):
 
     if request.method == 'DELETE':
         # DELETE Quiz from User Entity
-        user = client.get(client.key(USERS, user_id))
+        user = client.get(client.key(USERS, int(user_id)))
         user['QuizIDs'].remove(quiz_id)
         client.put(user)
 
         # DELETE Quiz from Quiz Entity
-        quiz = client.get(client.key(QUIZZES, quiz_id))
+        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
         client.delete(quiz)
 
         return redirect('/users'), 204
