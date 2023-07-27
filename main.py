@@ -1,90 +1,62 @@
-from flask import Flask, render_template, request, redirect, url_for, session
-from authlib.integrations.flask_client import OAuth
 from google.cloud import datastore
-import pandas as pd
-import matplotlib.pyplot as plt
-import io
-import base64
+import requests
+
+import json
+
+import datetime
+from os import environ as env
+
+from dotenv import load_dotenv, find_dotenv
+from flask import Flask
+from flask import request, make_response, jsonify, redirect, render_template
+from flask import session
+from flask import url_for
+from urllib.parse import quote_plus
+from authlib.integrations.flask_client import OAuth
+from six.moves.urllib.parse import urlencode
+from jose import jwt
+import jwt as pyjwt
+
+from views.quizzes import view_quizzes
+from views.scores import view_scores
+from views.questions import view_questions
+from views.answers import view_answers
+
+# ENV_FILE = find_dotenv()
+# if ENV_FILE:
+#     load_dotenv(ENV_FILE)
 
 app = Flask(__name__)
-datastore_client = datastore.Client()
+app.secret_key = env.get("APP_SECRET_KEY")
+
+client = datastore.Client()
+
+USERS = "users"
+QUIZZES = "quizzes"
+SCORES = "scores"
+QUESTIONS = "questions"
+ANSWERS = "answers"
+
+URL = ""
 
 # Auth0 configuration
-app.config['AUTH0_CLIENT_ID'] = 'CLIENT_ID'
-app.config['AUTH0_CLIENT_SECRET'] = 'CLIENT_SECRET'
-app.config['AUTH0_DOMAIN'] = 'YOUR_DOMAIN.auth0.com'
-oauth = OAuth(app)
+# CLIENT_ID = env.get("AUTH0_CLIENT_ID")
+# CLIENT_SECRET = env.get("AUTH0_CLIENT_SECRET")
+# DOMAIN = env.get("AUTH0_DOMAIN")
+#
+# ALGORITHMS = ["RS256"]
+#
+# oauth = OAuth(app)
 
-@app.route('/quizzes')
-def quiz_list():
-    quizzes = []
-    query = datastore_client.query(kind='quiz')
-    results = list(query.fetch())
+app.register_blueprint(view_quizzes)
+app.register_blueprint(view_scores)
+app.register_blueprint(view_questions)
+app.register_blueprint(view_answers)
 
-    quizzes = []
+@app.route('/')
+def index():
+    return 'Hello world'
 
-    for result in results:
-        quiz = {
-            'id': result.id,
-            'name': result['name'],
-            'num_questions': result['num_questions'],
-            'modified_date': result['modified_date'].strftime('%m/%d/%Y')
-        }
-        quizzes.append(quiz)
 
-    return render_template('quiz_list.html', quizzes=quizzes)
-
-@app.route('/scores')
-def scores():
-    scores = []
-
-    query = datastore_client.query(kind='scores')
-    results = list(query.fetch())
-
-    scores = []
-
-    for result in results:
-        score = {
-            'username': result['username'],
-            'score': result['score'],
-            'max_score': result['max_score'],
-            'percent': round((result['score'] / result['max_score']) * 100),
-            'time_taken': result['time_taken']
-        }
-        scores.append(score)
-
-    return render_template('scores.j2', scores=scores)
-
-@app.route('/score/<username>')
-def score(username):
-    # Get user score data from datastore
-    query = datastore_client.query(kind='scores')
-    query.add_filter('username', '=', username)
-    results = list(query.fetch())
-    user_score = results[0]
-
-    # Create score report elements
-    score = user_score['score']
-    max_score = user_score['max_score']
-    percent = round((score / max_score) * 100)
-    time = user_score['time_taken']
-
-    # Create pie chart
-    labels = ['Correct', 'Incorrect']
-    values = [user_score['correct_answers'], user_score['incorrect_answers']]
-    fig, ax = plt.subplots()
-    ax.pie(values, labels=labels, autopct='%1.1f%%')
-    img = io.BytesIO()
-    fig.savefig(img, format='png')
-    img.seek(0)
-    plot_url = base64.b64encode(img.getvalue()).decode()
-
-    return render_template(
-        'score.j2',
-        username=username,
-        score=score,
-        max_score=max_score,
-        percent=percent,
-        time=time,
-        plot_url=plot_url
-        )
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=8080, debug=True)

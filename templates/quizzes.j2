@@ -5,7 +5,7 @@
 <div class="quiz-header">
   <h1>Quizzes</h1>
 
-  <a href="{{ url_for('new_quiz') }}" class="btn">Create Quiz</a>
+  <a href="{{ url_for('view_quizzes.quizzes_get') }}" class="btn">Create Quiz</a>
 </div>
 
 <table>
@@ -18,11 +18,11 @@
 
   {% for quiz in quizzes %}
   <tr>
-    <td>{{ quiz.name }}</td>
-    <td>{{ quiz.num_questions }}</td>
-    <td>{{ quiz.modified_date }}</td>
+    <td>{{ quiz.QuizName }}</td>
+    <td>{{ quiz.NumberOfQuestions }}</td>
+    <td>{{ quiz.LastModified }}</td>
     <td>
-      <a href="{{ url_for('quiz_scores', quiz_id=quiz.id) }}">
+      <a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz.id) }}">
         View Scores
       </a>
     </td>

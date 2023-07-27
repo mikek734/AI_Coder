@@ -1,6 +1,5 @@
-from main import request, json, jsonify, make_response
-from main import datastore
-from jwt import *
+from google.cloud import datastore
+from flask import request, jsonify, redirect, render_template
 from flask import Blueprint
 
 client = datastore.Client()

@@ -2,33 +2,33 @@
 
 {% block content %}
 
-<h1>{{ username }}'s Score Report</h1>
+<h1>{{ score.CandidateName }}'s Score Report</h1>
 
 <div class="report-summary">
-  <p>Score: {{ score }} / {{ max_score }}</p>
-  <p>Percent: {{ percent }}%</p>
-  <p>Time: {{ time }} seconds</p>
+  <p>PercentScore: {{ score.PercentScore }}</p>
+  <p>RawScore: {{ score.RawScore }}</p>
+  <p>TimeTaken: {{ score.TimeTaken }}</p>
 
-  <a href="{{ url_for('all_scores') }}" class="btn">
+  <a href="{{ url_for('view_scores.get_post_scores') }}" class="btn">
     View All Scores
   </a>
 </div>
 
-<div class="chart">
-  <img src="data:image/png;base64,{{ plot_url }}">
-</div>
+<!--<div class="chart">-->
+<!--  <img src="data:image/png;base64,{{ plot_url }}">-->
+<!--</div>-->
 
-<div class="answer-summary">
-  <h3>Answers Summary</h3>
+<!--<div class="answer-summary">-->
+<!--  <h3>Answers Summary</h3>-->
 
-  <div class="correct">
-    <p>{{ user_score['correct_answers'] }} Correct</p>
-  </div>
+<!--  <div class="correct">-->
+<!--    <p>{{ user_score['correct_answers'] }} Correct</p>-->
+<!--  </div>-->
 
-  <div class="incorrect">
-    <p>{{ user_score['incorrect_answers'] }} Incorrect</p>
-  </div>
+<!--  <div class="incorrect">-->
+<!--    <p>{{ user_score['incorrect_answers'] }} Incorrect</p>-->
+<!--  </div>-->
 
-</div>
+<!--</div>-->
 
 {% endblock %}
