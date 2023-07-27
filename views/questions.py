@@ -76,20 +76,18 @@ def get_quiz_questions(quiz_id):
 
         # First, call all the Questions and add them to the viewing list
         for question_id in quiz['QuestionIDs']:
-            question = client.get(client.key(QUESTIONS, int(question_id)))
+            question = client.get(client.key(QUESTIONS, question_id))
             questions.append(question)
 
         # Second, call the Answer Choices of each Question and add them to the results
         for question in questions:
-            answer_set = []
+            choices = []
             for answer_id in question['AnswerIDs']:
-                answer = client.get(client.key(ANSWERS, int(answer_id)))
-                answer_set.append(answer['AnswerText'])
-            answers.append(answer_set)
+                answer = client.get(client.key(ANSWERS, answer_id))
+                choices.append(answer['AnswerText'])
+            answers.append(choices)
 
-        return jsonify([question_to_dict(q) for q in questions]), 200
-        #TODO
-        #return render_template("questions.j2", quiz_name=quiz_name, questions=questions, answers=answers), 200
+        return render_template("questions.j2", quiz_name=quiz_name, questions=questions, answers=answers), 200
 
 
 # POST or DELETE a Quiz Question
