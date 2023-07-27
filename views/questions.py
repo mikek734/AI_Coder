@@ -12,6 +12,7 @@ ANSWERS = "answers"
 view_questions = Blueprint('view_questions', __name__)
 
 
+# INTERNAL METHOD
 # GET or POST a Question
 @view_questions.route('/questions', methods=['GET', 'POST'])
 def questions_get_post():
@@ -62,6 +63,7 @@ def question_to_dict(question):
     }
 
 
+# INTERNAL METHOD
 # GET all Quiz Questions
 @view_questions.route('/quizzes/<quiz_id>/questions', methods=['GET'])
 def get_quiz_questions(quiz_id):
@@ -76,54 +78,24 @@ def get_quiz_questions(quiz_id):
 
         # First, call all the Questions and add them to the viewing list
         for question_id in quiz['QuestionIDs']:
-            question = client.get(client.key(QUESTIONS, question_id))
+            question = client.get(client.key(QUESTIONS, int(question_id)))
             questions.append(question)
-
-        # Second, call the Answer Choices of each Question and add them to the results
-        for question in questions:
             choices = []
-            for answer_id in question['AnswerIDs']:
-                answer = client.get(client.key(ANSWERS, answer_id))
-                choices.append(answer['AnswerText'])
-            answers.append(choices)
+            if question['AnswerIDs'] is not None:
+                for answer_id in question['AnswerIDs']:
+                    answer = client.get(client.key(ANSWERS, int(answer_id)))
+                    choices.append(answer['AnswerText'])
+                answers.append(choices)
+
+        # # Second, call the Answer Choices of each Question and add them to the results
+        # for question in questions:
+        #     choices = []
+        #     for answer_id in question['AnswerIDs']:
+        #         answer = client.get(client.key(ANSWERS, answer_id))
+        #         choices.append(answer['AnswerText'])
+        #     answers.append(choices)
 
         return render_template("questions.j2", quiz_name=quiz_name, questions=questions, answers=answers), 200
-
-
-# POST or DELETE a Quiz Question
-@view_questions.route('/quizzes/<quiz_id>/questions/<question_id>', methods=['DELETE', 'POST'])
-def add_delete_question_from_quiz(quiz_id, question_id):
-    if request.method == 'POST':
-
-        # POST Question to Quiz Entity
-        quiz_key = client.key(QUIZZES, int(quiz_id))
-        quiz = client.get(quiz_key)
-
-        if question_id not in quiz['QuestionIDs']:
-            quiz['QuestionIDs'].append(question_id)
-            client.put(quiz)
-        elif question_id in quiz['QuestionIDs']:
-            return 'Question already exists in the Quiz Questions', 400
-
-        # POST Question to Question Entity
-        question = client.get(client.key(QUESTIONS, int(question_id)))
-        if question_id == question.id:
-            return 'Question already exists in Questions', 400
-
-        client.put(question)
-        return redirect('/quizzes/<quiz_id>/questions'), 201
-
-    if request.method == 'DELETE':
-        # DELETE Question from Quiz Entity
-        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
-        quiz['QuestionIDs'].remove(question_id)
-        client.put(quiz)
-
-        # DELETE Question from Question Entity
-        question = client.get(client.key(QUESTIONS, int(question_id)))
-        client.delete(question)
-
-        return redirect('/quizzes/<quiz_id>/questions'), 204
 
 
 @view_questions.route('/questions/<question_id>', methods=['DELETE'])

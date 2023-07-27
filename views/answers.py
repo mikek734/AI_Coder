@@ -12,6 +12,7 @@ ANSWERS = "answers"
 view_answers = Blueprint('view_answers', __name__)
 
 
+# INTERNAL METHOD
 @view_answers.route('/answers', methods=['GET', 'POST'])
 def answers_get_post():
     if request.method == 'POST':
@@ -114,6 +115,7 @@ def answers_delete(answer_id):
         return '', 204
 
 
+# INTERNAL METHOD
 # Endpoint to GET Question Answers
 @view_answers.route('/questions/<question_id>/answers', methods=['GET'])
 def get_question_answers(question_id):

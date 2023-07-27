@@ -1,6 +1,7 @@
 from google.cloud import datastore
 from flask import request, jsonify, redirect, render_template
 from flask import Blueprint
+from main import AuthError, handle_auth_error, verify_jwt, decode_jwt
 
 client = datastore.Client()
 USERS = "users"
@@ -12,11 +13,15 @@ ANSWERS = "answers"
 view_quizzes = Blueprint('view_quizzes', __name__)
 
 
+# PROTECTED ROUTE
 # View all Quizzes made by User
 @view_quizzes.route('/quizzes', methods=['GET'])
 def quizzes_get():
 
     if request.method == 'GET':
+
+        # TODO add Authentication
+        # payload = verify_jwt(request)
 
         query = client.query(kind=QUIZZES)
         quizzes = list(query.fetch())
@@ -24,10 +29,11 @@ def quizzes_get():
         return render_template("quizzes.j2", quizzes=quizzes), 200
 
 
-# View one Quiz during quiz-taking
+# ROUTE WHERE CANDIDATE TAKES THE QUIZ
 @view_quizzes.route('/quizzes/<quiz_id>', methods=['POST', 'GET'])
 def quizzes_get_quiz(quiz_id):
 
+    # This is what the candidate does when hitting 'Submit Quiz'
     if request.method == 'POST':
 
         data = request.get_json()
@@ -51,8 +57,7 @@ def quizzes_get_quiz(quiz_id):
         if not client.get(quiz_key):
             return jsonify({'error': 'Invalid quiz ID'}), 400
 
-        # TODO
-        # Calculate quiz scores when the candidate hits Submit Quiz
+        # TODO Calculate quiz scores when the candidate hits Submit Quiz
         new_score = datastore.entity.Entity(key=client.key(SCORES))
         new_score.update(
             {
@@ -76,10 +81,10 @@ def quizzes_get_quiz(quiz_id):
             score = client.get(client.key(SCORES, score_id))
             scores.append(score)  # append all of that individual Score's 'Score' attributes as a single object
 
-        # TODO
-        # Where to redirect candidate after they hit 'Submit Quiz' ????
+        # TODO Decide on where to redirect candidate after they hit 'Submit Quiz'
         return redirect('/'), 201
 
+    # This is what the candidate sees to take the quiz
     elif request.method == 'GET':
 
         quiz = client.get(client.key(QUIZZES, int(quiz_id)))
@@ -104,14 +109,14 @@ def quizzes_get_quiz(quiz_id):
         return render_template("questions.j2", quiz_name=quiz_name, questions=questions, answers=answers), 200
 
 
+# PROTECTED ROUTE
 # POST a new blank Quiz if the Auth header contains a valid JWT
 @view_quizzes.route('/quizzes/add', methods=['POST', 'GET'])
 def quizzes_post():
 
     if request.method == 'POST':
 
-        # TODO
-        # Verify JWT First
+        # TODO Add Authentication
         data = request.get_json()
 
         try:
@@ -119,11 +124,11 @@ def quizzes_post():
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
 
-        user_key = client.key(USERS, int(data['UserID']))
+        user_key = client.key(USERS, int(data['sub']))
         user = client.get(user_key)
 
         if not user:
-            return jsonify({'error': 'Invalid user ID'}), 400
+            return jsonify({'error': 'Invalid user'}), 400
 
         quiz = create_quiz(data)
 
@@ -136,12 +141,15 @@ def quizzes_post():
         return render_template('quizzes_add.j2'), 200
 
 
+# PROTECTED ROUTE
 # DELETE, PUT, or PATCH a specific quiz
 @view_quizzes.route('/quizzes/<quiz_id>/edit', methods=['DELETE', 'PATCH', 'PUT', 'GET'])
 def quizzes_delete_put_patch(quiz_id):
 
     if request.method == 'PATCH':
         data = request.get_json()
+
+        # TODO Add Authentication
 
         try:
             validate_quiz_data(data)
@@ -175,14 +183,6 @@ def quizzes_delete_put_patch(quiz_id):
 
     elif request.method == 'DELETE':
 
-        # Delete Quiz from any Users
-        query = client.query(kind=USERS)
-        users = list(query.fetch())
-        for user in users:
-            if quiz_id in user['QuizIDs']:
-                user['QuizIDs'].remove(quiz_id)
-                client.put(user)
-
         # Delete all Questions and Answers associated with Quiz
         quiz = client.get(client.key(QUIZZES, int(quiz_id)))
         query = client.query(kind=QUESTIONS)
@@ -203,10 +203,60 @@ def quizzes_delete_put_patch(quiz_id):
 
         # TODO
         quiz = client.get(client.key(QUIZZES, int(quiz_id)))
-        questions = []
-        answers = []
+        quiz_questions = []
+        quiz_answers = []
 
-        return render_template('quizzes_edit.j2', quiz=quiz, questions=questions, answers=answers)
+        # Pull up the questions and answers, if any
+        question_query = client.query(kind=QUESTIONS)
+        questions = list(question_query.fetch())
+        for question in questions:
+            if question.id in quiz["QuestionIDs"]:
+                quiz_questions.append(question)
+                for answer_id in question["AnswerIDs"]:
+                    answer = client.get(client.key(ANSWERS, int(answer_id)))
+                    quiz_answers.append(answer["AnswerText"])
+
+        return render_template('quizzes_edit.j2', quiz=quiz, questions=quiz_questions, answers=quiz_answers)
+
+
+# PROTECTED ROUTE
+# to be used with Quiz Edit page
+# POST or DELETE a Quiz Question
+@view_quizzes.route('/quizzes/<quiz_id>/questions/<question_id>', methods=['DELETE', 'POST'])
+def add_delete_question_from_quiz(quiz_id, question_id):
+    if request.method == 'POST':
+
+        # TODO Add Authentication
+
+        # POST Question to Quiz Entity
+        quiz_key = client.key(QUIZZES, int(quiz_id))
+        quiz = client.get(quiz_key)
+
+        if question_id not in quiz['QuestionIDs']:
+            quiz['QuestionIDs'].append(question_id)
+            client.put(quiz)
+        elif question_id in quiz['QuestionIDs']:
+            return 'Question already exists in the Quiz Questions', 400
+
+        # POST Question to Question Entity
+        question = client.get(client.key(QUESTIONS, int(question_id)))
+        if question_id == question.id:
+            return 'Question already exists in Questions', 400
+
+        client.put(question)
+        return redirect('/quizzes/<quiz_id>/questions'), 201
+
+    if request.method == 'DELETE':
+        # DELETE Question from Quiz Entity
+        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
+        quiz['QuestionIDs'].remove(question_id)
+        client.put(quiz)
+
+        # DELETE Question from Question Entity
+        question = client.get(client.key(QUESTIONS, int(question_id)))
+        client.delete(question)
+
+        return redirect('/quizzes/<quiz_id>/questions'), 204
 
 
 def validate_quiz_data(data):
@@ -218,9 +268,6 @@ def validate_quiz_data(data):
 
     if not isinstance(data['LastModified'], str):
         raise ValueError('LastModified must be a string')
-
-    if not isinstance(data['UserID'], int):
-        raise ValueError('UserID must be an integer')
 
 
 def update_quiz(quiz, data):
@@ -239,7 +286,7 @@ def create_quiz(data):
             'QuizName': data['QuizName'],
             'NumberOfQuestions': data['NumberOfQuestions'],
             'LastModified': data['LastModified'],
-            'UserID': data['UserID'],
+            'UserID': data['sub'],
             'QuestionIDs': [
 
             ],
@@ -255,39 +302,3 @@ def create_quiz(data):
 def get_quiz(quiz_id):
     key = client.key(QUIZZES, int(quiz_id))
     return client.get(key)
-
-
-# Endpoint specifically for adding/deleting a quiz from a user, if desired
-@view_quizzes.route('/users/<user_id>/quizzes/<quiz_id>', methods=['DELETE', 'POST'])
-def add_delete_quiz_from_user(user_id, quiz_id):
-    if request.method == 'POST':
-
-        # POST Quiz to User Entity
-        user_key = client.key(USERS, int(user_id))
-        user = client.get(user_key)
-
-        if quiz_id not in user['QuizIDs']:
-            user['QuizIDs'].append(quiz_id)
-            client.put(user)
-        elif quiz_id in user['QuizIDs']:
-            return 'Quiz already exists in the User quizzes', 400
-
-        # POST Quiz to Quiz Entity
-        quiz = client.get(client.key(QUIZZES, quiz_id))
-        if quiz_id == quiz.id:
-            return 'Quiz already exists inside Quizzes', 400
-
-        client.put(quiz)
-        return redirect('/users'), 201
-
-    if request.method == 'DELETE':
-        # DELETE Quiz from User Entity
-        user = client.get(client.key(USERS, int(user_id)))
-        user['QuizIDs'].remove(quiz_id)
-        client.put(user)
-
-        # DELETE Quiz from Quiz Entity
-        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
-        client.delete(quiz)
-
-        return redirect('/users'), 204

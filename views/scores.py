@@ -12,7 +12,7 @@ ANSWERS = "answers"
 view_scores = Blueprint('view_scores', __name__)
 
 
-# View All Scores of a specific Quiz OR Post a new Score (internally)
+# View All Scores of a specific Quiz OR internally Post a new Score
 @view_scores.route('/quizzes/<quiz_id>/scores', methods=['GET', 'POST'])
 def get_post_scores(quiz_id):
     if request.method == 'POST':
@@ -75,7 +75,7 @@ def get_post_scores(quiz_id):
         return render_template("scores.j2", quiz_name=quiz_name, scores=results), 200
 
 
-# View a Score or Delete a Score
+# View a Score or (internally) Delete a Score
 @view_scores.route('/quizzes/<quiz_id>/scores/<score_id>', methods=['DELETE', 'GET'])
 def delete_get_score(quiz_id, score_id):
     if request.method == 'DELETE':
@@ -96,13 +96,8 @@ def delete_get_score(quiz_id, score_id):
         quiz_name = quiz["QuizName"]
 
         for s_id in quiz['ScoreIDs']:
-            print(f's_id: { s_id }')
-            print(type(s_id))
             if s_id == int(score_id):
-                print("hello")
                 score = client.get(client.key(SCORES, int(score_id)))
-                print(score)
-                print(score['CandidateName'])
 
                 return render_template("score.j2", score=score, score_id=int(score_id), quiz_name=quiz_name,
                                        quiz_id=int(quiz_id)),\
