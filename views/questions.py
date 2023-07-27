@@ -76,14 +76,14 @@ def get_quiz_questions(quiz_id):
 
         # First, call all the Questions and add them to the viewing list
         for question_id in quiz['QuestionIDs']:
-            question = client.get(client.key(QUESTIONS, question_id))
+            question = client.get(client.key(QUESTIONS, int(question_id)))
             questions.append(question)
 
         # Second, call the Answer Choices of each Question and add them to the results
         for question in questions:
             answer_set = []
             for answer_id in question['AnswerIDs']:
-                answer = client.get(client.key(ANSWERS, answer_id))
+                answer = client.get(client.key(ANSWERS, int(answer_id)))
                 answer_set.append(answer['AnswerText'])
             answers.append(answer_set)
 
@@ -98,7 +98,7 @@ def add_delete_question_from_quiz(quiz_id, question_id):
     if request.method == 'POST':
 
         # POST Question to Quiz Entity
-        quiz_key = client.key(QUIZZES, quiz_id)
+        quiz_key = client.key(QUIZZES, int(quiz_id))
         quiz = client.get(quiz_key)
 
         if question_id not in quiz['QuestionIDs']:
@@ -108,7 +108,7 @@ def add_delete_question_from_quiz(quiz_id, question_id):
             return 'Question already exists in the Quiz Questions', 400
 
         # POST Question to Question Entity
-        question = client.get(client.key(QUESTIONS, question_id))
+        question = client.get(client.key(QUESTIONS, int(question_id)))
         if question_id == question.id:
             return 'Question already exists in Questions', 400
 
@@ -117,12 +117,12 @@ def add_delete_question_from_quiz(quiz_id, question_id):
 
     if request.method == 'DELETE':
         # DELETE Question from Quiz Entity
-        quiz = client.get(client.key(QUIZZES, quiz_id))
+        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
         quiz['QuestionIDs'].remove(question_id)
         client.put(quiz)
 
         # DELETE Question from Question Entity
-        question = client.get(client.key(QUESTIONS, question_id))
+        question = client.get(client.key(QUESTIONS, int(question_id)))
         client.delete(question)
 
         return redirect('/quizzes/<quiz_id>/questions'), 204
@@ -140,6 +140,6 @@ def questions_delete(question_id):
                 client.put(quiz)
 
         # DELETE Question from Question Entity
-        question = client.get(client.key(QUESTIONS, question_id))
+        question = client.get(client.key(QUESTIONS, int(question_id)))
         client.delete(question)
         return '', 204
