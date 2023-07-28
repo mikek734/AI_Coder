@@ -1,6 +1,5 @@
-from main import request, json, jsonify, make_response
-from main import datastore
-from jwt import *
+from google.cloud import datastore
+from flask import request, jsonify, redirect, render_template
 from flask import Blueprint
 
 client = datastore.Client()
@@ -13,9 +12,9 @@ ANSWERS = "answers"
 view_answers = Blueprint('view_answers', __name__)
 
 
+# INTERNAL METHOD
 @view_answers.route('/answers', methods=['GET', 'POST'])
 def answers_get_post():
-
     if request.method == 'POST':
         data = request.get_json()
 
@@ -25,7 +24,7 @@ def answers_get_post():
         if not isinstance(data['IsCorrect'], bool):
             return jsonify({'error': 'IsCorrect must be a boolean'}), 400
 
-        question_key = client.key(QUESTIONS, data['QuestionID'])
+        question_key = client.key(QUESTIONS, int(data['QuestionID']))
         if not client.get(question_key):
             return jsonify({'error': 'Invalid question ID'}), 400
 
@@ -38,12 +37,12 @@ def answers_get_post():
             }
         )
 
+        client.put(new_answer)
+
         # Update Question Entity to maintain referential integrity
         question = client.get(question_key)
-        question['answer_ids'].append(new_answer.id)
+        question['AnswerIDs'].append(new_answer.id)
         client.put(question)
-
-        client.put(new_answer)
 
         return jsonify(answer_to_dict(new_answer)), 201
 
@@ -65,37 +64,35 @@ def answer_to_dict(answer):
 # Endpoint specifically for adding/deleting an answer to/from a question, if desired
 @view_answers.route('/questions/<question_id>/answers/<answer_id>', methods=['DELETE', 'POST'])
 def add_delete_answer_from_question(question_id, answer_id):
-
     if request.method == 'POST':
 
         # POST Answer to Question Entity
-        question_key = client.key(QUESTIONS, question_id)
+        question_key = client.key(QUESTIONS, int(question_id))
         question = client.get(question_key)
 
-        if answer_id not in question['answer_ids']:
-            question['answer_ids'].append(answer_id)
+        if answer_id not in question['AnswerIDs']:
+            question['AnswerIDs'].append(answer_id)
             client.put(question)
 
         # POST Answer to Answer Entity
         query = client.query(kind=ANSWERS)
         answers = list(query.fetch())
         for answer in answers:
-            if answer_id == answer.id:
+            if int(answer_id) == answer.id:
                 return 'Answer already in Answers database', 400
 
-        new_answer = client.get(client.key(ANSWERS, answer_id))
+        new_answer = client.get(client.key(ANSWERS, int(answer_id)))
         client.put(new_answer)
         return '', 201
 
     if request.method == 'DELETE':
-
         # DELETE Answer from Question Entity
-        question = client.get(client.key(QUESTIONS, question_id))
-        question['answer_ids'].remove(answer_id)
+        question = client.get(client.key(QUESTIONS, int(question_id)))
+        question['AnswerIDs'].remove(answer_id)
         client.put(question)
 
         # DELETE Answer from Answer Entity
-        answer = client.get(client.key(ANSWERS, answer_id))
+        answer = client.get(client.key(ANSWERS, int(answer_id)))
         client.delete(answer)
 
         return '', 204
@@ -108,28 +105,29 @@ def answers_delete(answer_id):
         query = client.query(kind=QUESTIONS)
         questions = list(query.fetch())
         for question in questions:
-            if answer_id in question['answer_ids']:
-                question['answer_ids'].remove(answer_id)
+            if answer_id in question['AnswerIDs']:
+                question['AnswerIDs'].remove(answer_id)
                 client.put(question)
 
         # DELETE Answer from Answer Entity
-        answer = client.get(client.key(ANSWERS, answer_id))
+        answer = client.get(client.key(ANSWERS, int(answer_id)))
         client.delete(answer)
         return '', 204
 
 
+# INTERNAL METHOD
 # Endpoint to GET Question Answers
 @view_answers.route('/questions/<question_id>/answers', methods=['GET'])
 def get_question_answers(question_id):
     if request.method == 'GET':
-      question_key = client.key('Question', int(question_id))
-      question = client.get(question_key)
+        question_key = client.key(QUESTIONS, int(question_id))
+        question = client.get(question_key)
 
-      question_text = question['QuestionText']
-      answers = []
+        question_text = question['QuestionText']
+        answers = []
 
-      for answer_id in question['answer_ids']:
-        answer = client.get(client.key('Answer', answer_id))
-        answers.append(answer)
+        for answer_id in question['AnswerIDs']:
+            answer = client.get(client.key(ANSWERS, int(answer_id)))
+            answers.append(answer)
 
-      return question_text, jsonify([answer_to_dict(a) for a in answers]), 200
+        return question_text, jsonify([answer_to_dict(a) for a in answers]), 200

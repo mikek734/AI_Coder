@@ -1,33 +1,52 @@
-from flask import Flask, redirect, request, render_template, session, url_for, flash
-from functools import wraps
 from google.cloud import datastore
 from google.cloud.datastore import Entity
+from authorization import *
+import requests
+
+import json
+
+import datetime
+from os import environ as env
+
+from dotenv import load_dotenv, find_dotenv
+from flask import Flask
+from flask import request, make_response, jsonify, redirect, render_template, session, url_for, flash
+from flask import session
+from flask import url_for
+from urllib.parse import quote_plus
 from authlib.integrations.flask_client import OAuth
+from six.moves.urllib.parse import urlencode
+from six.moves.urllib.request import urlopen
+from urllib.parse import quote_plus
+from authlib.integrations.flask_client import OAuth
+from six.moves.urllib.parse import urlencode
+from jose import jwt
+import jwt as pyjwt
+from functools import wraps
 from flask_mail import Mail, Message
 from config import PASSWORD, EMAIL
-import pandas as pd
-import matplotlib.pyplot as plt
-import io
-import base64
+
+from views.quizzes import view_quizzes
+from views.scores import view_scores
+from views.questions import view_questions
+from views.answers import view_answers
+
+# ENV_FILE = find_dotenv()
+# if ENV_FILE:
+#     load_dotenv(ENV_FILE)
 
 app = Flask(__name__)
-app.secret_key = 'SECRET_KEY'
+app.secret_key = env.get("APP_SECRET_KEY")
 
-# Google Cloud Datastore setup
 client = datastore.Client()
 
-accounts_kind = "Account"
+USERS = "users"
+QUIZZES = "quizzes"
+SCORES = "scores"
+QUESTIONS = "questions"
+ANSWERS = "answers"
 
-# Flask-Mail configuration
-app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
-app.config['MAIL_PORT'] = 2525
-app.config['MAIL_USERNAME'] = EMAIL
-app.config['MAIL_PASSWORD'] = PASSWORD
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
-
-mail = Mail(app)
-
+URL = ""
 # Update the values of the following 3 variables
 CLIENT_ID = '2r0PPGAOS2oBYlLYgtnSq2BaBSMyVQUz'
 CLIENT_SECRET = 'Y_F4LcRxDvIj2qksWC6h6RJAtxxAR5kI0WPrcPTjZ-ziYt9vit8KC6IJPMl51nMv'
@@ -50,112 +69,15 @@ auth0 = oauth.register(
     server_metadata_url=f'https://{DOMAIN}/.well-known/openid-configuration'
 )
 
-datastore_client = datastore.Client()
+# Flask-Mail configuration
+app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
+app.config['MAIL_PORT'] = 2525
+app.config['MAIL_USERNAME'] = EMAIL
+app.config['MAIL_PASSWORD'] = PASSWORD
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
 
-
-# NOT BING: START
-# This code is adapted from https://auth0.com/docs/quickstart/backend/python/01-authorization?_ga=2.46956069.349333901.1589042886-466012638.1589042885#create-the-jwt-validation-decorator
-class AuthError(Exception):
-    def __init__(self, error, status_code):
-        self.error = error
-        self.status_code = status_code
-
-
-@app.errorhandler(AuthError)
-def handle_auth_error(ex):
-    response = jsonify(ex.error)
-    response.status_code = ex.status_code
-    return response
-
-
-# Verify the JWT in the request's Authorization header
-def verify_jwt(request):
-    if 'Authorization' in request.headers:
-        auth_header = request.headers['Authorization'].split()
-        token = auth_header[1]
-    else:
-        raise AuthError({"code": "no auth header",
-                         "description":
-                             "Authorization header is missing"}, 401)
-    print("Authorization header exists")
-
-    jsonurl = urlopen("https://" + DOMAIN + "/.well-known/jwks.json")
-    jwks = json.loads(jsonurl.read())
-    print("JWKS")
-    print(jwks)
-    try:
-        unverified_header = jwt.get_unverified_header(token)
-        print("UNVERIFIED_HEADER")
-        print(unverified_header)
-    except jwt.JWTError:
-        raise AuthError({"code": "invalid_header",
-                         "description":
-                             "Invalid header. "
-                             "Use an RS256 signed JWT Access Token"}, 401)
-    print("Authorization header valid")
-
-    if unverified_header["alg"] == "HS256":
-        raise AuthError({"code": "invalid_header",
-                         "description":
-                             "Invalid header. "
-                             "Use an RS256 signed JWT Access Token"}, 401)
-    print("Authorization header not HS256")
-
-    rsa_key = {}
-    for key in jwks["keys"]:
-        if key["kid"] == unverified_header["kid"]:
-            rsa_key = {
-                "kty": key["kty"],
-                "kid": key["kid"],
-                "use": key["use"],
-                "n": key["n"],
-                "e": key["e"]
-            }
-    if rsa_key:
-        try:
-            payload = jwt.decode(
-                token,
-                rsa_key,
-                algorithms=ALGORITHMS,
-                audience=CLIENT_ID,
-                issuer="https://" + DOMAIN + "/"
-            )
-        except jwt.ExpiredSignatureError:
-            raise AuthError({"code": "token_expired",
-                             "description": "token is expired"}, 401)
-
-        except jwt.JWTClaimsError:
-            raise AuthError({"code": "invalid_claims",
-                             "description":
-                                 "incorrect claims,"
-                                 " please check the audience and issuer"}, 401)
-
-        except Exception:
-            raise AuthError({"code": "invalid_header",
-                             "description":
-                                 "Unable to parse authentication"
-                                 " token."}, 401)
-
-        print("token not expired")
-        print("claims valid")
-        print("authentication parsed")
-
-        return payload
-    else:
-        print("no RSA key")
-        raise AuthError({"code": "no_rsa_key",
-                         "description":
-                             "No RSA key in JWKS"}, 401)
-
-
-# Decode the JWT supplied in the Authorization header
-@app.route('/decode', methods=['GET'])
-def decode_jwt():
-    payload = verify_jwt(request)
-    return payload
-
-
-# NOT BING: END
+mail = Mail(app)
 
 
 @app.route("/login")
@@ -286,31 +208,11 @@ def delete_account(sub):
 
         # GET request - Render confirmation page
         return render_template('delete_confirmation.html', sub=sub)
-
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-@app.route('/home')
-def home():
-    return render_template('home.html', profile=session['profile'])
-
-
-@app.route('/quizzes')
-def view_all_quizzes():
-    return render_template('view_all_quizzes.html')
-
-
-@app.route('/create_quiz')
-def create_quiz():
-    return render_template('create_quiz.j2')
-
-
-@app.route('/scores')
-def view_all_scores():
-    return render_template('view_all_scores.html')
+      
+app.register_blueprint(view_quizzes)
+app.register_blueprint(view_scores)
+app.register_blueprint(view_questions)
+app.register_blueprint(view_answers)
 
 
 @app.route('/send_email', methods=['POST'])
@@ -321,84 +223,12 @@ def send_email():
                'https://your-app-url.com/quiz/quiz_id '
     mail.send(msg)
     return "Email has been sent!"
+  
+
+@app.route('/')
+def index():
+    return 'Hello world'
 
 
-@app.route('/quizzes')
-def quiz_list():
-    quizzes = []
-    query = datastore_client.query(kind='quiz')
-    results = list(query.fetch())
-
-    quizzes = []
-
-    for result in results:
-        quiz = {
-            'id': result.id,
-            'name': result['name'],
-            'num_questions': result['num_questions'],
-            'modified_date': result['modified_date'].strftime('%m/%d/%Y')
-        }
-        quizzes.append(quiz)
-
-    return render_template('quiz_list.html', quizzes=quizzes)
-
-
-@app.route('/scores')
-def scores():
-    scores = []
-
-    query = datastore_client.query(kind='scores')
-    results = list(query.fetch())
-
-    scores = []
-
-    for result in results:
-        score = {
-            'username': result['username'],
-            'score': result['score'],
-            'max_score': result['max_score'],
-            'percent': round((result['score'] / result['max_score']) * 100),
-            'time_taken': result['time_taken']
-        }
-        scores.append(score)
-
-    return render_template('scores.j2', scores=scores)
-
-
-@app.route('/score/<username>')
-def score(username):
-    # Get user score data from datastore
-    query = datastore_client.query(kind='scores')
-    query.add_filter('username', '=', username)
-    results = list(query.fetch())
-    user_score = results[0]
-
-    # Create score report elements
-    score = user_score['score']
-    max_score = user_score['max_score']
-    percent = round((score / max_score) * 100)
-    time = user_score['time_taken']
-
-    # Create pie chart
-    labels = ['Correct', 'Incorrect']
-    values = [user_score['correct_answers'], user_score['incorrect_answers']]
-    fig, ax = plt.subplots()
-    ax.pie(values, labels=labels, autopct='%1.1f%%')
-    img = io.BytesIO()
-    fig.savefig(img, format='png')
-    img.seek(0)
-    plot_url = base64.b64encode(img.getvalue()).decode()
-
-    return render_template(
-        'score.j2',
-        username=username,
-        score=score,
-        max_score=max_score,
-        percent=percent,
-        time=time,
-        plot_url=plot_url
-    )
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=8080, debug=True)

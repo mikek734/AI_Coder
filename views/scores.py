@@ -1,6 +1,5 @@
-from main import request, json, jsonify, make_response
-from main import datastore
-from jwt import *
+from google.cloud import datastore
+from flask import request, jsonify, redirect, render_template
 from flask import Blueprint
 
 client = datastore.Client()
@@ -13,9 +12,9 @@ ANSWERS = "answers"
 view_scores = Blueprint('view_scores', __name__)
 
 
-@view_scores.route('/quizzes/quiz_id/scores', methods=['GET', 'POST'])
-def scores_get_post():
-
+# View All Scores of a specific Quiz OR internally Post a new Score
+@view_scores.route('/quizzes/<quiz_id>/scores', methods=['GET', 'POST'])
+def get_post_scores(quiz_id):
     if request.method == 'POST':
         data = request.get_json()
 
@@ -34,102 +33,74 @@ def scores_get_post():
         if not isinstance(data['QuizID'], int):
             return jsonify({'error': 'Quiz ID must be an integer'}), 400
 
-        quiz_key = client.key('Quiz', data['quiz_id'])
-        if not client.get(quiz_key):
-            return jsonify({'error': 'Invalid quiz ID'}), 400
-
-        new_score = datastore.entity.Entity(key=client.key(SCORES))
-        new_score.update(
-            {
-                'CandidateName': data['CandidateName'],
-                'PercentScore': data['PercentScore'],
-                'RawScore': data['RawScore'],
-                'TimeTaken': data['TimeTaken'],
-                'QuizID': data['QuizID']
-            }
-        )
-
-        # Update Quiz Entity to maintain referential integrity
-        quiz = client.get(quiz_key)
-        quiz['score_ids'].append(new_score.id)
-        client.put(quiz)
-
-        client.put(new_score)
-
-        return jsonify(score_to_dict(new_score)), 201
-
-    elif request.method == 'GET':
-        quiz_id = request.args.get('quiz_id')
-        query = client.query(kind='Score')
-        query.add_filter('quiz_id', '=', int(quiz_id))
-        scores = list(query.fetch())
-
-        return jsonify([score_to_dict(s) for s in scores]), 200
-
-
-def score_to_dict(score):
-    return {
-        'ScoreID': score.id,
-        'CandidateName': score['CandidateName'],
-        'PercentScore': score['PercentScore'],
-        'RawScore': score['RawScore'],
-        'TimeTaken': score['TimeTaken'],
-        'QuizID': score['QuizID']
-    }
-
-
-# Endpoint specifically for adding/deleting a score to/from a quiz, if desired
-@view_scores.route('/quizzes/<quiz_id>/scores/<score_id>', methods=['DELETE', 'POST'])
-def add_delete_score_from_quiz(quiz_id, score_id):
-
-    if request.method == 'POST':
-
-        # POST Score to Quiz Entity
-        quiz_key = client.key(QUIZZES, quiz_id)
-        quiz = client.get(quiz_key)
-
-        if score_id not in quiz['score_ids']:
-            quiz['score_ids'].append(score_id)
-            client.put(quiz)
-
-        # POST Score to Score Entity
-        query = client.query(kind=SCORES)
-        scores = list(query.fetch())
-        for score in scores:
-            if score_id == score.id:
-                return 'Score already in Scores database', 400
-
-        new_score = client.get(client.key(SCORES, score_id))
-        client.put(new_score)
-        return '', 201
-
-    if request.method == 'DELETE':
-
-        # DELETE Score From Quiz Entity
-        quiz = client.get(client.key(QUIZZES, quiz_id))
-        quiz['score_ids'].remove(score_id)
-        client.put(quiz)
-
-        # DELETE Score From Score Entity
-        score = client.get(client.key(SCORES, score_id))
-        client.delete(score)
-
-        return '', 204
-
-
-# DELETE a Score
-@view_scores.route('/scores/<score_id>', methods=['DELETE'])
-def delete_score(score_id):
-    if request.method == 'DELETE':
-        # DELETE Score from any Quizzes
-        query = client.query(kind=QUIZZES)
-        quizzes = list(query.fetch())
+        quiz_query = client.query(kind=QUIZZES)
+        quizzes = list(quiz_query.fetch())
         for quiz in quizzes:
-            if score_id in quiz['score_ids']:
-                quiz['score_ids'].remove(score_id)
+            if quiz.id == int(quiz_id):
+
+                new_score = datastore.entity.Entity(key=client.key(SCORES))
+                new_score.update(
+                    {
+                        'CandidateName': data['CandidateName'],
+                        'PercentScore': data['PercentScore'],
+                        'RawScore': data['RawScore'],
+                        'TimeTaken': data['TimeTaken'],
+                        'QuizID': data['QuizID']
+                    }
+                )
+
+                client.put(new_score)
+
+                # Update Quiz Entity to maintain referential integrity
+                quiz['ScoreIDs'].append(new_score.id)
                 client.put(quiz)
 
+                return redirect('/quizzes/<quiz_id/scores'), 201
+
+        return jsonify({'error': 'Invalid quiz ID'}), 400
+
+    elif request.method == 'GET':
+        quiz_query = client.query(kind=QUIZZES)
+        quizzes = list(quiz_query.fetch())
+        quiz_name = ''
+        results = []
+        for quiz in quizzes:
+
+            if quiz.id == int(quiz_id):
+                quiz_name = quiz['QuizName']
+                for score_id in quiz['ScoreIDs']:
+                    score = client.get(client.key(SCORES, int(score_id)))
+                    results.append(score)
+
+        return render_template("scores.j2", quiz_name=quiz_name, scores=results), 200
+
+
+# View a Score or (internally) Delete a Score
+@view_scores.route('/quizzes/<quiz_id>/scores/<score_id>', methods=['DELETE', 'GET'])
+def delete_get_score(quiz_id, score_id):
+    if request.method == 'DELETE':
+
+        # DELETE Score from the Quiz
+        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
+        quiz['ScoreIDs'].remove(score_id)
+        client.put(quiz)
+
         # DELETE Score from Score Entity
-        score = client.get(client.key(SCORES, score_id))
+        score = client.get(client.key(SCORES, int(score_id)))
         client.delete(score)
-        return '', 204
+        return redirect('/quizzes/<quiz_id>/scores'), 204
+
+    elif request.method == 'GET':
+
+        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
+        quiz_name = quiz["QuizName"]
+
+        for s_id in quiz['ScoreIDs']:
+            if s_id == int(score_id):
+                score = client.get(client.key(SCORES, int(score_id)))
+
+                return render_template("score.j2", score=score, score_id=int(score_id), quiz_name=quiz_name,
+                                       quiz_id=int(quiz_id)),\
+                       200
+
+        return 'Score by Score ID not found', 400
