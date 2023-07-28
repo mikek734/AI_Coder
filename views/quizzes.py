@@ -3,6 +3,8 @@ from google.cloud import datastore
 from flask import Blueprint
 from authorization import *
 from datetime import datetime
+from werkzeug.datastructures import ImmutableMultiDict
+from views.questions import questions_get_post, question_to_dict, questions_delete, get_quiz_questions
 
 client = datastore.Client()
 USERS = "users"
@@ -115,18 +117,55 @@ def quizzes_post():
     if request.method == 'POST':
 
         # TODO Add Authentication
-        data = request.get_json()
+        data = request.form
 
-        try:
-            validate_quiz_data(data)
-        except ValueError as e:
-            return jsonify({'error': str(e)}), 400
+        # Rearranging the form data that was sent over by create_quiz.j2
+        print(data)
+        questions = {}
 
-        user_key = client.key(USERS, int(data['sub']))
+        # To identify each question, its 4 answer choices, and the correct answer
+        for key, value in data.items():
+            if 'question' in key:
+                question_num = int(key.split('question')[1])
+                questions[question_num] = {'question': value, 'answers': {}}
+            elif 'correctAnswer' in key:
+                questions[question_num]['correct'] = value  # store correct answer
+            elif 'answer' in key:
+                nums = key.split('_')
+                answer_num = int(nums[1])
+                questions[question_num]['answers'][answer_num] = value
+
+        # To be able to print out the questions/answers
+        # for question_num, question in questions.items():
+        #
+        #     print(f"Question {question_num}: {question['question']} {question['correct']}")
+        #
+        #     answers = question['answers']
+        #
+        #     for answer_num, answer in answers.items():
+        #         print(f"  Answer {answer_num}: {answer}")
+        #
+        #     print()
+
+        # Validate the quiz name
+        for key, value in data.items():
+            if 'QuizName' in key:
+                try:
+                    validate_quiz_data(data)
+                except ValueError as e:
+                    return jsonify({'error': str(e)}), 400
+
+        # Validate the questions
+
+        # Validate the user
+        user_key = client.key(USERS, int(data['UserID']))
         user = client.get(user_key)
 
         if not user:
             return jsonify({'error': 'Invalid user'}), 400
+
+        # Create the questions
+        questions_get_post(request, questions)
 
         quiz = create_quiz(data)
 
@@ -136,7 +175,7 @@ def quizzes_post():
 
     elif request.method == 'GET':
 
-        return render_template('quizzes_add.j2'), 200
+        return render_template('create_quiz.j2'), 200
 
 
 # PROTECTED ROUTE
@@ -254,12 +293,6 @@ def validate_quiz_data(data):
     if not isinstance(data['QuizName'], str):
         raise ValueError('Quiz name must be a string')
 
-    if not isinstance(data['NumberOfQuestions'], int):
-        raise ValueError('Number of questions must be an integer')
-
-    if not isinstance(data['LastModified'], str):
-        raise ValueError('LastModified must be a string')
-
 
 def update_quiz(quiz, data):
     quiz['QuizName'] = data['QuizName']
@@ -277,7 +310,7 @@ def create_quiz(data):
             'QuizName': data['QuizName'],
             'NumberOfQuestions': data['NumberOfQuestions'],
             'LastModified': datetime.now().strftime("%m/%d/%Y %H:%M:%S"),
-            'UserID': data['sub'],
+            'UserID': data['UserID'],
             'QuestionIDs': [
 
             ],

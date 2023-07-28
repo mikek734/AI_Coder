@@ -24,7 +24,7 @@ from jose import jwt
 import jwt as pyjwt
 from functools import wraps
 from flask_mail import Mail, Message
-from config import PASSWORD, EMAIL
+# from config import PASSWORD, EMAIL
 
 from views.quizzes import view_quizzes
 from views.scores import view_scores
@@ -69,15 +69,23 @@ auth0 = oauth.register(
     server_metadata_url=f'https://{DOMAIN}/.well-known/openid-configuration'
 )
 
-# Flask-Mail configuration
-app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
-app.config['MAIL_PORT'] = 2525
-app.config['MAIL_USERNAME'] = EMAIL
-app.config['MAIL_PASSWORD'] = PASSWORD
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
+# # Flask-Mail configuration
+# app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
+# app.config['MAIL_PORT'] = 2525
+# app.config['MAIL_USERNAME'] = EMAIL
+# app.config['MAIL_PASSWORD'] = PASSWORD
+# app.config['MAIL_USE_TLS'] = True
+# app.config['MAIL_USE_SSL'] = False
+#
+# mail = Mail(app)
 
-mail = Mail(app)
+
+@app.after_request
+def after_request(response):
+  response.headers.add('Access-Control-Allow-Origin', '*')
+  response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+  response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+  return response
 
 
 @app.route("/login")
@@ -99,8 +107,8 @@ def callback():
     userinfo = resp.json()
 
     # Check if user already exists
-    user_key = datastore_client.key('User', userinfo['sub'])
-    existing_user = datastore_client.get(user_key)
+    user_key = client.key(USERS, userinfo['sub'])
+    existing_user = client.get(user_key)
 
     if not existing_user:
         # User does not exist yet, create new Entity
@@ -111,7 +119,7 @@ def callback():
             'picture': userinfo['picture'],
             'sub': userinfo['sub']
         })
-        datastore_client.put(user)
+        client.put(user)
 
     # Store token and redirect to home
     session['jwt_payload'] = userinfo
@@ -131,14 +139,14 @@ def callback():
 
 # CLAUDE (WEEK4)
 def get_user(sub):
-    key = datastore_client.key('User', sub)
-    return datastore_client.get(key)
+    key = client.key(USERS, sub)
+    return client.get(key)
 
 
 @app.route('/user_profile/<sub>')
 def user_profile(sub):
-    user_key = datastore_client.key('User', sub)
-    user = datastore_client.get(user_key)
+    user_key = client.key(USERS, sub)
+    user = client.get(user_key)
 
     return render_template('user_profile.html', user=user)
 
@@ -193,8 +201,8 @@ def delete_account(sub):
     if request.method == 'POST':
 
         # Delete account
-        user_key = datastore_client.key('User', sub)
-        datastore_client.delete(user_key)
+        user_key = client.key('User', sub)
+        client.delete(user_key)
 
         # Flash confirmation message
         flash('Account deleted', 'success')

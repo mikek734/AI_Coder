@@ -15,7 +15,7 @@ view_questions = Blueprint('view_questions', __name__)
 # INTERNAL METHOD
 # GET or POST a Question
 @view_questions.route('/questions', methods=['GET', 'POST'])
-def questions_get_post():
+def questions_get_post(request, questions):
     if request.method == 'POST':
         data = request.get_json()
 

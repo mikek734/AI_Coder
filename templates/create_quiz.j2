@@ -7,8 +7,8 @@
 <body>
     <h1>Create Quiz</h1>
     <form id="quizForm">
-        <label for="quizName">Quiz Name: </label>
-        <input type="text" id="quizName" name="quizName" required>
+        <label for="QuizName">Quiz Name: </label>
+        <input type="text" id="QuizName" name="QuizName" required>
         <div id="questionContainer">
             <!-- Questions will be dynamically added here -->
         </div>
@@ -17,23 +17,31 @@
     </form>
 
     <script>
+    var answerCount = 0;
         $(document).ready(function() {
             var questionCount = 0;
 
             var questionHTML = function(count) {
-                return '<div class="question">' +
-                    '<input type="text" name="question' + count + '" placeholder="Question">' +
-                    '<input type="radio" name="correctAnswer' + count + '" value="1">' +
-                    '<input type="text" name="answer1' + count + '" placeholder="Answer 1">' +
-                    '<input type="radio" name="correctAnswer' + count + '" value="2">' +
-                    '<input type="text" name="answer2' + count + '" placeholder="Answer 2">' +
-                    '<input type="radio" name="correctAnswer' + count + '" value="3">' +
-                    '<input type="text" name="answer3' + count + '" placeholder="Answer 3">' +
-                    '<input type="radio" name="correctAnswer' + count + '" value="4">' +
-                    '<input type="text" name="answer4' + count + '" placeholder="Answer 4">' +
-                    '<button type="button" class="removeQuestion">Remove Question</button>' +
-                    '</div>';
-            };
+
+            answerCount = 0;
+            return '<div class="question">' +
+              '<input type="text" name="question' + (count + 1) + '" placeholder="Question">' +
+
+              // Generate numbered answers
+              answerHTML(questionCount, count) +
+              answerHTML(questionCount, count) +
+              answerHTML(questionCount, count) +
+              answerHTML(questionCount, count) +
+              '<button type="button" class="removeQuestion">Remove Question</button>' +
+              '</div>';
+          }
+
+            var answerHTML = function(questionCount, count) {
+            answerCount++;
+            return '<input type="radio" name="correctAnswer' + count + '" id=" ' + answerCount + '" value=" ' + answerCount + '">' +
+            '<input name="answer_' + answerCount + '_' + (questionCount + 1) + '" placeholder="Answer">'
+            ;
+          }
 
             $('#addQuestion').click(function() {
                 $('#questionContainer').append(questionHTML(questionCount));
@@ -47,6 +55,18 @@
             $('#quizForm').submit(function(e) {
                 e.preventDefault();
                 // Here you would send the form data to your Flask application
+
+                var formData = $(this).serialize();
+
+                $.ajax({
+                  url: '/quizzes/add',
+                  method: 'POST',
+                  data: formData,
+                  success: function(response) {
+                    // Handle success
+                    window.location.href = '/quizzes';
+                  }
+                });
             });
         });
     </script>
