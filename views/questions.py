@@ -25,6 +25,12 @@ def questions_get_post():
         if not isinstance(data['QuizID'], int):
             return jsonify({'error': 'Quiz ID must be an integer'}), 400
 
+        if not isinstance(data['AnswerChoices'], list):
+            return jsonify({'error': 'Quiz ID must be an integer'}), 400
+
+        if not isinstance(data['CorrectAnswer'], int):
+            return jsonify({'error': 'Correct Answer must be an integer'}), 400
+
         quiz_key = client.key(QUIZZES, int(data['QuizID']))
         if not client.get(quiz_key):
             return jsonify({'error': 'Invalid quiz ID'}), 400
@@ -34,9 +40,8 @@ def questions_get_post():
             {
                 'QuestionText': data['QuestionText'],
                 'QuizID': data['QuizID'],
-                'AnswerIDs': [
-
-                ]
+                'AnswerChoices': data['AnswerChoices'],
+                'CorrectAnswer': data['CorrectAnswer']
             }
         )
 
@@ -57,9 +62,10 @@ def questions_get_post():
 
 def question_to_dict(question):
     return {
-        'QuestionID': question.id,
         'QuestionText': question['QuestionText'],
-        'QuizID': question['QuizID']
+        'QuizID': question['QuizID'],
+        'AnswerChoices': question['AnswerChoices'],
+        'CorrectAnswer': question['CorrectAnswer']
     }
 
 
@@ -74,28 +80,13 @@ def get_quiz_questions(quiz_id):
 
         quiz_name = quiz['QuizName']
         questions = []
-        answers = []
 
         # First, call all the Questions and add them to the viewing list
         for question_id in quiz['QuestionIDs']:
             question = client.get(client.key(QUESTIONS, int(question_id)))
             questions.append(question)
-            choices = []
-            if question['AnswerIDs'] is not None:
-                for answer_id in question['AnswerIDs']:
-                    answer = client.get(client.key(ANSWERS, int(answer_id)))
-                    choices.append(answer['AnswerText'])
-                answers.append(choices)
 
-        # # Second, call the Answer Choices of each Question and add them to the results
-        # for question in questions:
-        #     choices = []
-        #     for answer_id in question['AnswerIDs']:
-        #         answer = client.get(client.key(ANSWERS, answer_id))
-        #         choices.append(answer['AnswerText'])
-        #     answers.append(choices)
-
-        return render_template("questions.j2", quiz_name=quiz_name, questions=questions, answers=answers), 200
+        return render_template("questions.j2", quiz=quiz, quiz_name=quiz_name, questions=questions), 200
 
 
 @view_questions.route('/questions/<question_id>', methods=['DELETE'])

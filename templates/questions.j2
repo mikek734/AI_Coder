@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Quiz: {{ quiz_name }}</h1>
+
+<form method="POST" action="{{ url_for('view_quizzes.quizzes_get_quiz', quiz_id=quiz.key.id) }}">
+
+  {% set question_num = 1 %}
+
+  {% for question in questions %}
+
+    <div class="question">
+
+      <div class="question-text">
+        {{ loop.index }}. {{ question.QuestionText }}
+      </div>
+
+      {% set question_num = question_num + 1 %}
+
+      <div class="answers">
+
+        {% for choice in question.AnswerChoices %}
+
+          <div class="answer">
+
+            <input type="radio" id="answer{{ loop.index }}" name="q{{ question.id }}" value="{{ loop.index }}">
+
+            <label for="answer{{ loop.index }}">
+              {{ choice }}
+            </label>
+
+          </div>
+
+        {% endfor %}
+
+      </div>
+
+    </div>
+
+  <div style="height: 20px;"></div>
+
+  {% endfor %}
+
+  <button type="submit">Submit Quiz</button>
+
+</form>
+
+{% endblock %}

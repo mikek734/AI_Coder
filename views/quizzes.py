@@ -1,7 +1,8 @@
+from flask import request, json, jsonify, redirect, render_template
 from google.cloud import datastore
-from flask import request, jsonify, redirect, render_template
 from flask import Blueprint
-from main import AuthError, handle_auth_error, verify_jwt, decode_jwt
+from authorization import *
+from datetime import datetime
 
 client = datastore.Client()
 USERS = "users"
@@ -95,18 +96,15 @@ def quizzes_get_quiz(quiz_id):
 
         # First, call all the Questions and add them to the viewing list
         for question_id in quiz['QuestionIDs']:
-            question = client.get(client.key(QUESTIONS, question_id))
+            question = client.get(client.key(QUESTIONS, int(question_id)))
             questions.append(question)
+            options = []
+            for answer in question['AnswerChoices']:
+                options.append(answer)
+            answers.append(options)
 
-        # Second, call the Answer Choices of each Question and add them to the results
-        for question in questions:
-            choices = []
-            for answer_id in question['AnswerIDs']:
-                answer = client.get(client.key(ANSWERS, answer_id))
-                choices.append(answer['AnswerText'])
-            answers.append(choices)
-
-        return render_template("questions.j2", quiz_name=quiz_name, questions=questions, answers=answers), 200
+        return render_template("questions.j2", quiz=quiz, quiz_name=quiz_name, questions=questions),\
+               200
 
 
 # PROTECTED ROUTE
@@ -183,15 +181,12 @@ def quizzes_delete_put_patch(quiz_id):
 
     elif request.method == 'DELETE':
 
-        # Delete all Questions and Answers associated with Quiz
+        # Delete all Questions associated with Quiz
         quiz = client.get(client.key(QUIZZES, int(quiz_id)))
         query = client.query(kind=QUESTIONS)
         questions = list(query.fetch())
         for question in questions:
             if question.id in quiz['QuestionIDs']:
-                for answer_id in question['AnswerIDs']:
-                    answer = client.get(client.key(ANSWERS, answer_id))
-                    client.delete(answer)
                 client.delete(question)
 
         # Delete Quiz from Quiz Entity
@@ -204,19 +199,15 @@ def quizzes_delete_put_patch(quiz_id):
         # TODO
         quiz = client.get(client.key(QUIZZES, int(quiz_id)))
         quiz_questions = []
-        quiz_answers = []
 
-        # Pull up the questions and answers, if any
+        # Pull up the questions, if any
         question_query = client.query(kind=QUESTIONS)
         questions = list(question_query.fetch())
         for question in questions:
             if question.id in quiz["QuestionIDs"]:
                 quiz_questions.append(question)
-                for answer_id in question["AnswerIDs"]:
-                    answer = client.get(client.key(ANSWERS, int(answer_id)))
-                    quiz_answers.append(answer["AnswerText"])
 
-        return render_template('quizzes_edit.j2', quiz=quiz, questions=quiz_questions, answers=quiz_answers)
+        return render_template('quizzes_edit.j2', quiz=quiz, questions=quiz_questions)
 
 
 # PROTECTED ROUTE
@@ -285,7 +276,7 @@ def create_quiz(data):
         {
             'QuizName': data['QuizName'],
             'NumberOfQuestions': data['NumberOfQuestions'],
-            'LastModified': data['LastModified'],
+            'LastModified': datetime.now().strftime("%m/%d/%Y %H:%M:%S"),
             'UserID': data['sub'],
             'QuestionIDs': [
 

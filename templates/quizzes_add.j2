@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Create New Quiz</h1>
+
+<form method="POST" action="{{ url_for('view_quizzes.quizzes_post') }}">
+
+  <div class="form-field">
+    <label>Quiz Name:</label>
+    <input type="text" name="quiz_name">
+  </div>
+
+  <div class="form-field">
+    <label>Number of Questions:</label>
+    <input type="number" name="num_questions">
+  </div>
+
+  <button type="submit">Create Quiz</button>
+
+</form>
+
+{% endblock %}
