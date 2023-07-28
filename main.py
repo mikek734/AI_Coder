@@ -1,4 +1,5 @@
 from google.cloud import datastore
+from google.cloud.datastore import Entity
 from authorization import *
 import requests
 
@@ -9,7 +10,7 @@ from os import environ as env
 
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask
-from flask import request, make_response, jsonify, redirect, render_template
+from flask import request, make_response, jsonify, redirect, render_template, session, url_for, flash
 from flask import session
 from flask import url_for
 from urllib.parse import quote_plus
@@ -21,6 +22,9 @@ from authlib.integrations.flask_client import OAuth
 from six.moves.urllib.parse import urlencode
 from jose import jwt
 import jwt as pyjwt
+from functools import wraps
+from flask_mail import Mail, Message
+from config import PASSWORD, EMAIL
 
 from views.quizzes import view_quizzes
 from views.scores import view_scores
@@ -43,7 +47,6 @@ QUESTIONS = "questions"
 ANSWERS = "answers"
 
 URL = ""
-
 # Update the values of the following 3 variables
 CLIENT_ID = '2r0PPGAOS2oBYlLYgtnSq2BaBSMyVQUz'
 CLIENT_SECRET = 'Y_F4LcRxDvIj2qksWC6h6RJAtxxAR5kI0WPrcPTjZ-ziYt9vit8KC6IJPMl51nMv'
@@ -66,11 +69,161 @@ auth0 = oauth.register(
     server_metadata_url=f'https://{DOMAIN}/.well-known/openid-configuration'
 )
 
+# Flask-Mail configuration
+app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
+app.config['MAIL_PORT'] = 2525
+app.config['MAIL_USERNAME'] = EMAIL
+app.config['MAIL_PASSWORD'] = PASSWORD
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
+mail = Mail(app)
+
+
+@app.route("/login")
+def login():
+    return oauth.auth0.authorize_redirect(
+        redirect_uri=url_for("callback", _external=True)
+    )
+
+
+# updated by Claude to check if user already exists (WEEK 4)
+@app.route('/callback')
+def callback():
+    # Initialize session
+    session['jwt_payload'] = None
+    session['profile'] = None
+
+    auth0.authorize_access_token()
+    resp = auth0.get('userinfo')
+    userinfo = resp.json()
+
+    # Check if user already exists
+    user_key = datastore_client.key('User', userinfo['sub'])
+    existing_user = datastore_client.get(user_key)
+
+    if not existing_user:
+        # User does not exist yet, create new Entity
+        user = datastore.Entity(key=user_key)
+        user.update({
+            'email': userinfo['email'],
+            'name': userinfo['name'],
+            'picture': userinfo['picture'],
+            'sub': userinfo['sub']
+        })
+        datastore_client.put(user)
+
+    # Store token and redirect to home
+    session['jwt_payload'] = userinfo
+    session['profile'] = {
+        'user_id': userinfo['sub'],
+        'name': userinfo['name'],
+        'picture': userinfo['picture']
+    }
+    return redirect(url_for('home'))
+
+
+# @app.before_request
+# def before_request():
+#     session['jwt_payload'] = None
+#     session['profile'] = None
+
+
+# CLAUDE (WEEK4)
+def get_user(sub):
+    key = datastore_client.key('User', sub)
+    return datastore_client.get(key)
+
+
+@app.route('/user_profile/<sub>')
+def user_profile(sub):
+    user_key = datastore_client.key('User', sub)
+    user = datastore_client.get(user_key)
+
+    return render_template('user_profile.html', user=user)
+
+
+# CLAUDE (WEEK4)
+@app.route('/update_name/<sub>', methods=['GET', 'POST'])
+def update_name(sub):
+    user = get_user(sub)
+
+    if request.method == 'POST':
+        name = request.form['name']
+
+        # chatgpt fixed claudes function (WEEK4)
+        user['name'] = name  # Update the 'name' property directly
+
+        # Save the changes to the Datastore using the 'put' method of the client
+        client = datastore.Client()
+        client.put(user)
+
+        return redirect(url_for('user_profile', sub=sub))
+
+    return render_template('update_name.html', user=user)
+
+
+# CLAUDE (WEEK4)
+@app.route('/update_picture/<sub>', methods=['GET', 'POST'])
+def update_picture(sub):
+    user = get_user(sub)
+
+    if request.method == 'POST':
+        picture = request.form['picture']
+
+        # chatgpt fixed claudes function (WEEK4)
+        user['picture'] = picture  # Update the 'picture' property directly
+
+        # Save the changes to the Datastore using the 'put' method of the client
+        client = datastore.Client()
+        client.put(user)
+
+        return redirect(url_for('user_profile', sub=sub))
+
+    return render_template('update_picture.html', user=user)
+
+
+# updated by Claude to because deletion and page redirection wasn't working (WEEK 4)
+@app.route('/delete_account/<sub>', methods=['GET', 'POST'])
+def delete_account(sub):
+    # Initialize session
+    session['jwt_payload'] = None
+    session['profile'] = None
+
+    if request.method == 'POST':
+
+        # Delete account
+        user_key = datastore_client.key('User', sub)
+        datastore_client.delete(user_key)
+
+        # Flash confirmation message
+        flash('Account deleted', 'success')
+
+        # Clear session
+        session.clear()
+
+        return redirect(url_for('login'))
+
+    else:
+
+        # GET request - Render confirmation page
+        return render_template('delete_confirmation.html', sub=sub)
+      
 app.register_blueprint(view_quizzes)
 app.register_blueprint(view_scores)
 app.register_blueprint(view_questions)
 app.register_blueprint(view_answers)
 
+
+@app.route('/send_email', methods=['POST'])
+def send_email():
+    msg = Message('Technical Job Quiz', sender=EMAIL, recipients=['chuckie@cheese.com'])
+    msg.body = 'Someone at "organization" has requested that you take the following quiz to test your programming ' \
+               'capabilities for employment: "quiz_name". Please click the following to take the quiz: ' \
+               'https://your-app-url.com/quiz/quiz_id '
+    mail.send(msg)
+    return "Email has been sent!"
+  
 
 @app.route('/')
 def index():

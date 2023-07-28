@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home Page</title>
+</head>
+<body>
+    <h1>Application Homepage!</h1>
+    <button onclick="location.href='{{ url_for('user_profile', sub=profile['user_id']) }}'" type="button">View Account</button>
+    <button onclick="location.href='{{ url_for('quiz_list') }}'" type="button">View All Quizzes</button>
+</body>
+</html>

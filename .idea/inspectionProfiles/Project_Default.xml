@@ -1,6 +1,13 @@
 <component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
+<<<<<<< HEAD
+    <inspection_tool class="PyPep8NamingInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="N803" />
+          <option value="N802" />
+=======
     <inspection_tool class="HtmlUnknownAttribute" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="myValues">
         <value>
@@ -25,6 +32,7 @@
         <list>
           <option value="N802" />
           <option value="N803" />
+>>>>>>> claude_base
           <option value="N806" />
         </list>
       </option>
@@ -32,12 +40,19 @@
     <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredIdentifiers">
         <list>
+<<<<<<< HEAD
+          <option value="object.length" />
+          <option value="object.insert" />
+          <option value="object.contains" />
+          <option value="object.*" />
+=======
           <option value="str.append" />
           <option value="int.format" />
           <option value="object.key" />
           <option value="object.value" />
           <option value="object.is_tombstone" />
           <option value="str.getlist" />
+>>>>>>> claude_base
         </list>
       </option>
     </inspection_tool>
