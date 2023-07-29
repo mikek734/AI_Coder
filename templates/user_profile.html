@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<button onclick="location.href='{{ url_for('home') }}'" type="button">Back to Home</button>
+<button onclick="location.href='{{ url_for('view_quizzes.quizzes_get') }}'" type="button">View Quizzes</button>
 <h1>{{ user.name }}</h1>
 
 <p>

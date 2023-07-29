@@ -5,7 +5,9 @@
 <div class="quiz-header">
   <h1>Quizzes</h1>
 
-  <a href="{{ url_for('view_quizzes.quizzes_post') }}" class="btn">Create Quiz</a>
+  <button onclick="location.href='{{ url_for('user_profile') }}'" type="button">View Profile</button>
+  <button onclick="location.href='{{ url_for('view_quizzes.quizzes_post') }}'" type="button">Create Quiz</button>
+
 </div>
 
 <table>
@@ -25,6 +27,12 @@
       <a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz.id) }}">
         View Scores
       </a>
+    </td>
+    <td>
+      <button onclick="location.href='{{ url_for('view_quizzes.quizzes_delete_put_patch', quiz_id=quiz.id) }}'" type="button">Edit</button>
+    </td>
+    <td>
+      <button onclick="location.href='{{ url_for('send_email', quiz_id=quiz.id, quiz_name=quiz.QuizName) }}'" type="button">Share</button>
     </td>
   </tr>
   {% endfor %}

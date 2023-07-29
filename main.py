@@ -24,7 +24,7 @@ from jose import jwt
 import jwt as pyjwt
 from functools import wraps
 from flask_mail import Mail, Message
-# from config import PASSWORD, EMAIL
+from config import PASSWORD, EMAIL
 
 from views.quizzes import view_quizzes
 from views.scores import view_scores
@@ -36,7 +36,7 @@ from views.answers import view_answers
 #     load_dotenv(ENV_FILE)
 
 app = Flask(__name__)
-app.secret_key = env.get("APP_SECRET_KEY")
+app.secret_key = "APP_SECRET_KEY"
 
 client = datastore.Client()
 
@@ -69,23 +69,23 @@ auth0 = oauth.register(
     server_metadata_url=f'https://{DOMAIN}/.well-known/openid-configuration'
 )
 
-# # Flask-Mail configuration
-# app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
-# app.config['MAIL_PORT'] = 2525
-# app.config['MAIL_USERNAME'] = EMAIL
-# app.config['MAIL_PASSWORD'] = PASSWORD
-# app.config['MAIL_USE_TLS'] = True
-# app.config['MAIL_USE_SSL'] = False
-#
-# mail = Mail(app)
+# Flask-Mail configuration
+app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
+app.config['MAIL_PORT'] = 2525
+app.config['MAIL_USERNAME'] = EMAIL
+app.config['MAIL_PASSWORD'] = PASSWORD
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
+mail = Mail(app)
 
 
 @app.after_request
 def after_request(response):
-  response.headers.add('Access-Control-Allow-Origin', '*')
-  response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-  response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
-  return response
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    return response
 
 
 @app.route("/login")
@@ -128,7 +128,7 @@ def callback():
         'name': userinfo['name'],
         'picture': userinfo['picture']
     }
-    return redirect(url_for('home'))
+    return redirect(url_for('user_profile'))
 
 
 # @app.before_request
@@ -143,8 +143,9 @@ def get_user(sub):
     return client.get(key)
 
 
-@app.route('/user_profile/<sub>')
-def user_profile(sub):
+@app.route('/user_profile')
+def user_profile():
+    sub = session['profile']['user_id']
     user_key = client.key(USERS, sub)
     user = client.get(user_key)
 
@@ -216,27 +217,29 @@ def delete_account(sub):
 
         # GET request - Render confirmation page
         return render_template('delete_confirmation.html', sub=sub)
-      
+
+
 app.register_blueprint(view_quizzes)
 app.register_blueprint(view_scores)
 app.register_blueprint(view_questions)
 app.register_blueprint(view_answers)
 
 
-@app.route('/send_email', methods=['POST'])
-def send_email():
+@app.route('/send_email/<quiz_id>/<quiz_name>', methods=['GET'])
+def send_email(quiz_id, quiz_name):
+    quiz_url = request.url_root + 'quiz/' + str(quiz_id)
     msg = Message('Technical Job Quiz', sender=EMAIL, recipients=['chuckie@cheese.com'])
-    msg.body = 'Someone at "organization" has requested that you take the following quiz to test your programming ' \
-               'capabilities for employment: "quiz_name". Please click the following to take the quiz: ' \
-               'https://your-app-url.com/quiz/quiz_id '
+    msg.html = f'<p>Someone at "organization" has requested that you take the {quiz_name} quiz to test your ' \
+               f'programming capabilities for employment.</p>' \
+               f'<p>Please click the following to take the quiz: <a href="{quiz_url}">{quiz_name}</a></p>'
     mail.send(msg)
     return "Email has been sent!"
-  
+
 
 @app.route('/')
 def index():
-    return 'Hello world'
+    return render_template('index.html')
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8080, debug=True)
+    app.run(debug=True)

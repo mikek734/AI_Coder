@@ -105,8 +105,7 @@ def quizzes_get_quiz(quiz_id):
                 options.append(answer)
             answers.append(options)
 
-        return render_template("questions.j2", quiz=quiz, quiz_name=quiz_name, questions=questions),\
-               200
+        return render_template("questions.j2", quiz=quiz, quiz_name=quiz_name, questions=questions), 200
 
 
 # PROTECTED ROUTE
