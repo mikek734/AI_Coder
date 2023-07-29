@@ -1,9 +1,31 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Quiz</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Edit Quiz</h1>
+    <form id="quizForm">
+        <label for="QuizName">Quiz Name: </label>
+        <input type="text" id="QuizName" name="QuizName" value="{{ quiz_name }}" required>
+        <div id="questionContainer">
+            {% for question, answer_string in question_answer_pairs %}
+            <div class="question">
+                <input type="text" name="question{{ loop.index }}" value="{{ question.QuestionText }}" placeholder="Question">
+                {% set answers = answer_string.split('|') %}
+                {% for answer in answers %}
+                <input type="text" name="answer{{ loop.index }}_{{ loop.index }}" value="{{ answer }}" placeholder="Answer">
+                {% endfor %}
+                <button type="button" class="removeQuestion" data-id="{{ question.id }}">Remove Question</button>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="button" id="addQuestion">Add Question</button>
+        <button type="submit">Save Quiz</button>
+        <button onclick="location.href='{{ url_for('view_quizzes.quizzes_get') }}'" type="button">Cancel</button>
+    </form>
 
-{% block content %}
-
-<h1>Edit Quiz</h1>
-
-
-
-{% endblock %}
+    <!-- Your JavaScript code here... -->
+</body>
+</html>

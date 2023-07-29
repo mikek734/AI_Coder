@@ -1,36 +1,26 @@
-{% extends 'base.html' %}
-
-{% block content %}
-
-<h1>Create New Quiz</h1>
-
-<form id="add-question-form" method="post">
-
-  <label>Question:</label>
-  <input type="text" name="question">
-
-  <button type="submit">Add Question</button>
-
-</form>
-
-<h2>Questions</h2>
-
-<div id="questions">
-  {% for question in questions %}
-    <p>{{ question }}</p>
-  {% endfor %}
-</div>
-
-<form id="save-quiz-form" method="post" action="{{ url_for('save_quiz') }}">
-
-  <button type="submit">Save Quiz</button>
-
-</form>
-
-<script>
-
-  // JS to handle forms
-
-</script>
-
-{% endblock %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quiz</title>
+</head>
+<body>
+    <h1>{{ quiz_name }}</h1>
+    <form action="/quizzes/{{ quiz.id }}" method="post">
+        {% set ns = namespace(count=0) %}
+        {% for question in questions %}
+        {% set ns.count = ns.count + 1 %}
+        <div>
+            <h3>{{ ns.count }}. {{ question.QuestionText }}</h3>
+            {% for option in question.AnswerChoices %}
+            <div>
+                <input type="radio" id="{{ option }}" name="{{ question.id }}" value="{{ option }}">
+                <label for="{{ option }}">{{ option }}</label>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        <br>
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>

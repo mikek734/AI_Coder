@@ -25,7 +25,7 @@ import jwt as pyjwt
 from functools import wraps
 from flask_mail import Mail, Message
 from config import PASSWORD, EMAIL
-
+from constants import USERS, QUIZZES, QUESTIONS, ANSWERS, SCORES
 from views.quizzes import view_quizzes
 from views.scores import view_scores
 from views.questions import view_questions
@@ -39,12 +39,6 @@ app = Flask(__name__)
 app.secret_key = "APP_SECRET_KEY"
 
 client = datastore.Client()
-
-USERS = "users"
-QUIZZES = "quizzes"
-SCORES = "scores"
-QUESTIONS = "questions"
-ANSWERS = "answers"
 
 URL = ""
 # Update the values of the following 3 variables
@@ -129,12 +123,6 @@ def callback():
         'picture': userinfo['picture']
     }
     return redirect(url_for('user_profile'))
-
-
-# @app.before_request
-# def before_request():
-#     session['jwt_payload'] = None
-#     session['profile'] = None
 
 
 # CLAUDE (WEEK4)
@@ -225,15 +213,15 @@ app.register_blueprint(view_questions)
 app.register_blueprint(view_answers)
 
 
-@app.route('/send_email/<quiz_id>/<quiz_name>', methods=['GET'])
-def send_email(quiz_id, quiz_name):
-    quiz_url = request.url_root + 'quiz/' + str(quiz_id)
-    msg = Message('Technical Job Quiz', sender=EMAIL, recipients=['chuckie@cheese.com'])
-    msg.html = f'<p>Someone at "organization" has requested that you take the {quiz_name} quiz to test your ' \
+@app.route('/send_email/<quiz_id>/<quiz_name>/<to_email>', methods=['GET'])
+def send_email(quiz_id, quiz_name, to_email):
+    quiz_url = request.url_root + 'quizzes/' + str(quiz_id)
+    msg = Message('Technical Job Quiz', sender=EMAIL, recipients=[to_email])
+    msg.html = f'<p>Someone at AI Coder has requested that you take the {quiz_name} quiz to test your ' \
                f'programming capabilities for employment.</p>' \
                f'<p>Please click the following to take the quiz: <a href="{quiz_url}">{quiz_name}</a></p>'
     mail.send(msg)
-    return "Email has been sent!"
+    return jsonify({'message': 'Email sent successfully'})
 
 
 @app.route('/')

@@ -233,19 +233,22 @@ def quizzes_delete_put_patch(quiz_id):
         return redirect('/quizzes'), 204
 
     elif request.method == 'GET':
-
-        # TODO
         quiz = client.get(client.key(QUIZZES, int(quiz_id)))
-        quiz_questions = []
+        quiz_name = quiz['QuizName']
+        question_answer_pairs = []
 
-        # Pull up the questions, if any
-        question_query = client.query(kind=QUESTIONS)
-        questions = list(question_query.fetch())
-        for question in questions:
-            if question.id in quiz["QuestionIDs"]:
-                quiz_questions.append(question)
+        # First, call all the Questions and add them to the viewing list
+        for question_id in quiz['QuestionIDs']:
+            question = client.get(client.key(QUESTIONS, int(question_id)))
+            options = []
+            for answer in question['AnswerChoices']:
+                options.append(answer)
 
-        return render_template('quizzes_edit.j2', quiz=quiz, questions=quiz_questions)
+            # Concatenate the question and its answers into one string
+            question_answer_pairs.append((question, '|'.join(options)))
+
+        return render_template("quizzes_edit.j2", quiz=quiz, quiz_name=quiz_name,
+                               question_answer_pairs=question_answer_pairs), 200
 
 
 # PROTECTED ROUTE

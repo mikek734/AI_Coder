@@ -1,0 +1,5 @@
+USERS = "users"
+QUIZZES = "quizzes"
+SCORES = "scores"
+QUESTIONS = "questions"
+ANSWERS = "answers"
