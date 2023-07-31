@@ -112,9 +112,7 @@ def quizzes_get_quiz(quiz_id):
 # POST a new blank Quiz if the Auth header contains a valid JWT
 @view_quizzes.route('/quizzes/add', methods=['POST', 'GET'])
 def quizzes_post():
-
     if request.method == 'POST':
-
         # TODO Add Authentication
         data = request.form
 
@@ -154,26 +152,25 @@ def quizzes_post():
                 except ValueError as e:
                     return jsonify({'error': str(e)}), 400
 
-        # Validate the questions
+            # Validate the questions
 
         # Validate the user
-        user_key = client.key(USERS, int(data['UserID']))
+        user_key = client.key(USERS, data['UserID'])
         user = client.get(user_key)
 
         if not user:
             return jsonify({'error': 'Invalid user'}), 400
 
-        # Create the questions
-        questions_get_post(request, questions)
+        result = questions_get_post(request, questions)
+        if isinstance(result, tuple) and result[1] != 201:
+            return result
 
         quiz = create_quiz(data)
-
         client.put(quiz)
 
         return redirect('/quizzes'), 201
 
     elif request.method == 'GET':
-
         return render_template('create_quiz.j2'), 200
 
 

@@ -9,6 +9,8 @@
     <form id="quizForm">
         <label for="QuizName">Quiz Name: </label>
         <input type="text" id="QuizName" name="QuizName" required>
+        <input type="hidden" id="NumberOfQuestions" name="NumberOfQuestions" value="0">
+        <input type="hidden" id="UserID" name="UserID" value="{{ session['profile']['user_id'] }}">
         <div id="questionContainer">
             <!-- Questions will be dynamically added here -->
         </div>
@@ -18,7 +20,7 @@
     </form>
 
     <script>
-    var answerCount = 0;
+        var answerCount = 0;
         $(document).ready(function() {
             var questionCount = 0;
 

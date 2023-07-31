@@ -19,38 +19,37 @@ def questions_get_post(request, questions):
     if request.method == 'POST':
         data = request.get_json()
 
-        if not isinstance(data['QuestionText'], str):
-            return jsonify({'error': 'Question text must be a string'}), 400
+        for question_num, question_data in questions.items():
+            question_text = question_data['question']
+            answer_choices = list(question_data['answers'].values())
+            correct_answer = question_data['correct']
 
-        if not isinstance(data['QuizID'], int):
-            return jsonify({'error': 'Quiz ID must be an integer'}), 400
+            # Validation
+            if not isinstance(question_text, str):
+                return jsonify({'error': 'Question text must be a string'}), 400
+            if not isinstance(answer_choices, list):
+                return jsonify({'error': 'Answer choices must be a list'}), 400
+            if not isinstance(correct_answer, int):
+                return jsonify({'error': 'Correct answer must be an integer'}), 400
 
-        if not isinstance(data['AnswerChoices'], list):
-            return jsonify({'error': 'Quiz ID must be an integer'}), 400
+            # Create a new question
+            new_question = datastore.entity.Entity(key=client.key(QUESTIONS))
+            new_question.update(
+                {
+                    'QuestionText': question_text,
+                    'QuizID': data['QuizID'],
+                    'AnswerChoices': answer_choices,
+                    'CorrectAnswer': correct_answer
+                }
+            )
 
-        if not isinstance(data['CorrectAnswer'], int):
-            return jsonify({'error': 'Correct Answer must be an integer'}), 400
+            client.put(new_question)
 
-        quiz_key = client.key(QUIZZES, int(data['QuizID']))
-        if not client.get(quiz_key):
-            return jsonify({'error': 'Invalid quiz ID'}), 400
-
-        new_question = datastore.entity.Entity(key=client.key(QUESTIONS))
-        new_question.update(
-            {
-                'QuestionText': data['QuestionText'],
-                'QuizID': data['QuizID'],
-                'AnswerChoices': data['AnswerChoices'],
-                'CorrectAnswer': data['CorrectAnswer']
-            }
-        )
-
-        client.put(new_question)
-
-        # Update Quiz Entity to maintain referential integrity
-        quiz = client.get(quiz_key)
-        quiz['QuestionIDs'].append(new_question.id)
-        client.put(quiz)
+            # Update Quiz Entity to maintain referential integrity
+            quiz_key = client.key(QUIZZES, int(data['QuizID']))
+            quiz = client.get(quiz_key)
+            quiz['QuestionIDs'].append(new_question.id)
+            client.put(quiz)
 
         return jsonify(question_to_dict(new_question)), 201
 
