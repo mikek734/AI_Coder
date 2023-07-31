@@ -1,5 +1,7 @@
 from google.cloud import datastore
 from google.cloud.datastore import Entity
+
+import authorization
 from authorization import *
 import requests
 
@@ -25,7 +27,7 @@ import jwt as pyjwt
 from functools import wraps
 from flask_mail import Mail, Message
 from config import PASSWORD, EMAIL
-from constants import USERS, QUIZZES, QUESTIONS, ANSWERS, SCORES
+from constants import USERS, QUIZZES, QUESTIONS, ANSWERS, SCORES, CLIENT_ID, CLIENT_SECRET, DOMAIN
 from views.quizzes import view_quizzes
 from views.scores import view_scores
 from views.questions import view_questions
@@ -41,12 +43,6 @@ app.secret_key = "APP_SECRET_KEY"
 client = datastore.Client()
 
 URL = ""
-# Update the values of the following 3 variables
-CLIENT_ID = '2r0PPGAOS2oBYlLYgtnSq2BaBSMyVQUz'
-CLIENT_SECRET = 'Y_F4LcRxDvIj2qksWC6h6RJAtxxAR5kI0WPrcPTjZ-ziYt9vit8KC6IJPMl51nMv'
-DOMAIN = '476-summer-2023.us.auth0.com'
-
-ALGORITHMS = ["RS256"]
 
 oauth = OAuth(app)
 
@@ -211,6 +207,7 @@ app.register_blueprint(view_quizzes)
 app.register_blueprint(view_scores)
 app.register_blueprint(view_questions)
 app.register_blueprint(view_answers)
+app.register_blueprint(authorization.auth_bp)
 
 
 @app.route('/send_email/<quiz_id>/<quiz_name>/<to_email>', methods=['GET'])

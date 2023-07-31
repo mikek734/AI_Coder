@@ -3,3 +3,7 @@ QUIZZES = "quizzes"
 SCORES = "scores"
 QUESTIONS = "questions"
 ANSWERS = "answers"
+CLIENT_ID = '2r0PPGAOS2oBYlLYgtnSq2BaBSMyVQUz'
+CLIENT_SECRET = 'Y_F4LcRxDvIj2qksWC6h6RJAtxxAR5kI0WPrcPTjZ-ziYt9vit8KC6IJPMl51nMv'
+DOMAIN = '476-summer-2023.us.auth0.com'
+ALGORITHMS = ["RS256"]

@@ -1,7 +1,9 @@
-from flask import json, jsonify, request
-from main import app, DOMAIN, ALGORITHMS, CLIENT_ID
+from flask import json, jsonify, request, Blueprint
+from constants import CLIENT_ID, DOMAIN, ALGORITHMS
 from six.moves.urllib.request import urlopen
-from main import jwt
+from jose import jwt
+
+auth_bp = Blueprint('auth', __name__)
 
 
 # NOT BING: START
@@ -13,7 +15,7 @@ class AuthError(Exception):
         self.status_code = status_code
 
 
-@app.errorhandler(AuthError)
+@auth_bp.errorhandler(AuthError)
 def handle_auth_error(ex):
     response = jsonify(ex.error)
     response.status_code = ex.status_code
@@ -115,7 +117,7 @@ def verify_jwt(request):
 
 
 # Decode the JWT supplied in the Authorization header
-@app.route('/decode', methods=['GET'])
+@auth_bp.route('/decode', methods=['GET'])
 def decode_jwt():
     payload = verify_jwt(request)
     return payload
