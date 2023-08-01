@@ -152,7 +152,7 @@ def quizzes_post():
                 except ValueError as e:
                     return jsonify({'error': str(e)}), 400
 
-            # Validate the questions
+        # Validate the questions
 
         # Validate the user
         user_key = client.key(USERS, data['UserID'])
@@ -161,12 +161,12 @@ def quizzes_post():
         if not user:
             return jsonify({'error': 'Invalid user'}), 400
 
-        result = questions_get_post(request, questions)
-        if isinstance(result, tuple) and result[1] != 201:
-            return result
-
         quiz = create_quiz(data)
         client.put(quiz)
+
+        result = questions_get_post(request, questions, quiz_id=quiz.id)
+        if isinstance(result, tuple) and result[1] != 201:
+            return result
 
         return redirect('/quizzes'), 201
 
@@ -178,39 +178,63 @@ def quizzes_post():
 # DELETE, PUT, or PATCH a specific quiz
 @view_quizzes.route('/quizzes/<quiz_id>/edit', methods=['DELETE', 'PATCH', 'PUT', 'GET'])
 def quizzes_delete_put_patch(quiz_id):
-
     if request.method == 'PATCH':
         data = request.get_json()
 
         # TODO Add Authentication
+        # Extract and validate quiz data
 
-        try:
-            validate_quiz_data(data)
-        except ValueError as e:
-            return jsonify({'error': str(e)}), 400
+        # Extract questions from the data
+        questions = data.get('questions', [])
 
-        key = client.key(QUIZZES, int(quiz_id))
-        quiz = client.get(key)
-
-        quiz = update_quiz(quiz, data)
-
-        client.put(quiz)
+        # Process each question
+        for question_data in questions:
+            if 'id' in question_data:
+                # This is an existing question
+                if 'delete' in question_data and question_data['delete']:
+                    # If the delete field is present and set to true, delete the question
+                    delete_question_from_quiz(quiz_id, question_data['id'])
+                else:
+                    # If the delete field is absent or set to false, update the question
+                    update_question_in_quiz(quiz_id, question_data['id'], question_data)
+            else:
+                # This is a new question, add it
+                add_question_to_quiz(quiz_id, question_data)
 
         return redirect('/quizzes'), 200
 
     elif request.method == 'PUT':
         data = request.get_json()
-
         try:
             validate_quiz_data(data)
         except ValueError as e:
+
             return jsonify({'error': str(e)}), 400
 
-        quiz = create_quiz(data)
+        # Get existing quiz
         key = client.key(QUIZZES, int(quiz_id))
-        quiz.key = key
+        quiz = client.get(key)
 
+        # Update the quiz with new data
+        quiz = update_quiz(quiz, data)
         client.put(quiz)
+
+        # Extract questions from the data
+        questions = data.get('questions', [])
+
+        # Process each question
+        for question_data in questions:
+            if 'id' in question_data:
+                # This is an existing question
+                if 'delete' in question_data and question_data['delete']:
+                    # If the delete field is present and set to true, delete the question
+                    delete_question_from_quiz(quiz_id, question_data['id'])
+                else:
+                    # If the delete field is absent or set to false, update the question
+                    update_question_in_quiz(quiz_id, question_data['id'], question_data)
+            else:
+                # This is a new question, add it
+                add_question_to_quiz(quiz_id, question_data)
 
         return redirect('/quizzes'), 200
 
@@ -242,50 +266,58 @@ def quizzes_delete_put_patch(quiz_id):
                 options.append(answer)
 
             # Concatenate the question and its answers into one string
-            question_answer_pairs.append((question, '|'.join(options)))
+            # Also, include the correct answer in the tuple
+            question_answer_pairs.append((question, '|'.join(options), question['CorrectAnswer']))
 
         return render_template("quizzes_edit.j2", quiz=quiz, quiz_name=quiz_name,
                                question_answer_pairs=question_answer_pairs), 200
 
 
-# PROTECTED ROUTE
-# to be used with Quiz Edit page
-# POST or DELETE a Quiz Question
-@view_quizzes.route('/quizzes/<quiz_id>/questions/<question_id>', methods=['DELETE', 'POST'])
-def add_delete_question_from_quiz(quiz_id, question_id):
-    if request.method == 'POST':
+def add_question_to_quiz(quiz_id, question_data):
+    # TODO Add Authentication
 
-        # TODO Add Authentication
+    # POST Question to Quiz Entity
+    quiz_key = client.key(QUIZZES, int(quiz_id))
+    quiz = client.get(quiz_key)
 
-        # POST Question to Quiz Entity
-        quiz_key = client.key(QUIZZES, int(quiz_id))
-        quiz = client.get(quiz_key)
+    # Create a new question
+    new_question = datastore.entity.Entity(key=client.key(QUESTIONS))
+    new_question.update(question_data)
+    client.put(new_question)
 
-        if question_id not in quiz['QuestionIDs']:
-            quiz['QuestionIDs'].append(question_id)
-            client.put(quiz)
-        elif question_id in quiz['QuestionIDs']:
-            return 'Question already exists in the Quiz Questions', 400
-
-        # POST Question to Question Entity
-        question = client.get(client.key(QUESTIONS, int(question_id)))
-        if question_id == question.id:
-            return 'Question already exists in Questions', 400
-
-        client.put(question)
-        return redirect('/quizzes/<quiz_id>/questions'), 201
-
-    if request.method == 'DELETE':
-        # DELETE Question from Quiz Entity
-        quiz = client.get(client.key(QUIZZES, int(quiz_id)))
-        quiz['QuestionIDs'].remove(question_id)
+    # Add the question ID to the Quiz
+    if new_question.id not in quiz['QuestionIDs']:
+        quiz['QuestionIDs'].append(new_question.id)
         client.put(quiz)
 
-        # DELETE Question from Question Entity
-        question = client.get(client.key(QUESTIONS, int(question_id)))
-        client.delete(question)
+    return new_question
 
-        return redirect('/quizzes/<quiz_id>/questions'), 204
+
+def delete_question_from_quiz(quiz_id, question_id):
+    # DELETE Question from Quiz Entity
+    quiz = client.get(client.key(QUIZZES, int(quiz_id)))
+    quiz['QuestionIDs'].remove(question_id)
+    client.put(quiz)
+
+    # DELETE Question from Question Entity
+    question = client.get(client.key(QUESTIONS, int(question_id)))
+    client.delete(question)
+
+
+def update_question_in_quiz(quiz_id, question_id, question_data):
+    # TODO Add Authentication
+
+    # Get the existing question
+    question_key = client.key(QUESTIONS, int(question_id))
+    question = client.get(question_key)
+
+    # Update the question with the new data
+    question.update(question_data)
+
+    # Put the updated question back into the datastore
+    client.put(question)
+
+    return question
 
 
 def validate_quiz_data(data):

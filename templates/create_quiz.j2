@@ -49,10 +49,15 @@
             $('#addQuestion').click(function() {
                 $('#questionContainer').append(questionHTML(questionCount));
                 questionCount++;
+                // Update NumberOfQuestions field
+                $('#NumberOfQuestions').val(questionCount);
             });
 
             $('#questionContainer').on('click', '.removeQuestion', function() {
                 $(this).parent().remove();
+                questionCount--;
+                // Update NumberOfQuestions field
+                $('#NumberOfQuestions').val(questionCount);
             });
 
             $('#quizForm').submit(function(e) {

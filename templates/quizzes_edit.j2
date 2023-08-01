@@ -10,15 +10,19 @@
         <label for="QuizName">Quiz Name: </label>
         <input type="text" id="QuizName" name="QuizName" value="{{ quiz_name }}" required>
         <div id="questionContainer">
-            {% for question, answer_string in question_answer_pairs %}
-            <div class="question">
-                <input type="text" name="question{{ loop.index }}" value="{{ question.QuestionText }}" placeholder="Question">
-                {% set answers = answer_string.split('|') %}
-                {% for answer in answers %}
-                <input type="text" name="answer{{ loop.index }}_{{ loop.index }}" value="{{ answer }}" placeholder="Answer">
-                {% endfor %}
-                <button type="button" class="removeQuestion" data-id="{{ question.id }}">Remove Question</button>
-            </div>
+            {% for question, answer_string, correct_answer in question_answer_pairs %}
+                <div class="question">
+                    <!-- The input field for the question text -->
+                    <input type="text" name="question{{ loop.index }}" value="{{ question.QuestionText }}" placeholder="Question">
+                    {% set answers = answer_string.split('|') %}
+                    {% for answer in answers %}
+                        <input type="radio" name="correctAnswer{{ loop.index }}" id="answer{{ loop.index }}" value="{{ loop.index }}" {% if loop.index == correct_answer %}checked{% endif %}>
+                        <label for="answer{{ loop.index }}">
+                            <input type="text" name="answer{{ loop.index }}_{{ loop.index }}" value="{{ answer }}" placeholder="Answer">
+                        </label>
+                    {% endfor %}
+                    <button type="button" class="removeQuestion" data-id="{{ question.id }}">Remove Question</button>
+                </div>
             {% endfor %}
         </div>
         <button type="button" id="addQuestion">Add Question</button>
@@ -27,5 +31,63 @@
     </form>
 
     <!-- Your JavaScript code here... -->
+</body>
+</html>
+
+
+    <script>
+        var answerCount = 0;
+        $(document).ready(function() {
+            var questionCount = $("#questionContainer .question").length;
+
+            var questionHTML = function(count) {
+            answerCount = 0;
+            return '<div class="question">' +
+              '<input type="text" name="question' + (count + 1) + '" placeholder="Question">' +
+
+              // Generate numbered answers
+              answerHTML(questionCount, count) +
+              answerHTML(questionCount, count) +
+              answerHTML(questionCount, count) +
+              answerHTML(questionCount, count) +
+              '<button type="button" class="removeQuestion">Remove Question</button>' +
+              '</div>';
+            }
+
+            var answerHTML = function(questionCount, count) {
+            answerCount++;
+            return '<input type="radio" name="correctAnswer' + count + '" id=" ' + answerCount + '" value=" ' + answerCount + '">' +
+            '<input name="answer_' + answerCount + '_' + (questionCount + 1) + '" placeholder="Answer">'
+            ;
+            }
+
+            $('#addQuestion').click(function() {
+                $('#questionContainer').append(questionHTML(questionCount));
+                questionCount++;
+            });
+
+            $('#questionContainer').on('click', '.removeQuestion', function() {
+                $(this).parent().remove();
+                questionCount--;
+            });
+
+            $('#quizForm').submit(function(e) {
+                e.preventDefault();
+                // Here you would send the form data to your Flask application
+
+                var formData = $(this).serialize();
+
+                $.ajax({
+                  url: '/quizzes/add',  // Modify this to match your edit route
+                  method: 'POST',
+                  data: formData,
+                  success: function(response) {
+                    // Handle success
+                    window.location.href = '/quizzes';
+                  }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

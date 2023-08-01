@@ -15,14 +15,14 @@ view_questions = Blueprint('view_questions', __name__)
 # INTERNAL METHOD
 # GET or POST a Question
 @view_questions.route('/questions', methods=['GET', 'POST'])
-def questions_get_post(request, questions):
+def questions_get_post(request, questions, quiz_id):
     if request.method == 'POST':
-        data = request.get_json()
+        new_questions = []  # Store new question entities here
 
         for question_num, question_data in questions.items():
             question_text = question_data['question']
             answer_choices = list(question_data['answers'].values())
-            correct_answer = question_data['correct']
+            correct_answer = int(question_data['correct'])  # Convert correct answer to int
 
             # Validation
             if not isinstance(question_text, str):
@@ -37,21 +37,22 @@ def questions_get_post(request, questions):
             new_question.update(
                 {
                     'QuestionText': question_text,
-                    'QuizID': data['QuizID'],
+                    'QuizID': quiz_id,
                     'AnswerChoices': answer_choices,
                     'CorrectAnswer': correct_answer
                 }
             )
 
             client.put(new_question)
+            new_questions.append(new_question)  # Add the new question to the list
 
             # Update Quiz Entity to maintain referential integrity
-            quiz_key = client.key(QUIZZES, int(data['QuizID']))
+            quiz_key = client.key(QUIZZES, int(quiz_id))
             quiz = client.get(quiz_key)
             quiz['QuestionIDs'].append(new_question.id)
             client.put(quiz)
 
-        return jsonify(question_to_dict(new_question)), 201
+        return jsonify([question_to_dict(q) for q in new_questions]), 201  # Use new_questions here
 
     elif request.method == 'GET':
         query = client.query(kind=QUESTIONS)
