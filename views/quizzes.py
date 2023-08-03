@@ -15,14 +15,11 @@ ANSWERS = "answers"
 
 view_quizzes = Blueprint('view_quizzes', __name__)
 
-
 # PROTECTED ROUTE
 # View all Quizzes made by User
 @view_quizzes.route('/quizzes', methods=['GET'])
 def quizzes_get():
-
     if request.method == 'GET':
-
         # TODO add Authentication
         # payload = verify_jwt(request)
 
@@ -35,39 +32,22 @@ def quizzes_get():
 # ROUTE WHERE CANDIDATE TAKES THE QUIZ
 @view_quizzes.route('/quizzes/<quiz_id>', methods=['POST', 'GET'])
 def quizzes_get_quiz(quiz_id):
-
     # This is what the candidate does when hitting 'Submit Quiz'
     if request.method == 'POST':
 
-        data = request.get_json()
-
-        if not isinstance(data['CandidateName'], str):
-            return jsonify({'error': 'Name must be a string'}), 400
-
-        if not isinstance(data['PercentScore'], str):
-            return jsonify({'error': 'Percent score must be a string'}), 400
-
-        if not isinstance(data['RawScore'], str):
-            return jsonify({'error': 'Raw score must be a string'}), 400
-
-        if not isinstance(data['TimeTaken'], str):
-            return jsonify({'error': 'Time taken must be a string'}), 400
-
-        if not isinstance(data['QuizID'], int):
-            return jsonify({'error': 'Quiz ID must be an integer'}), 400
+        candidate_name, percent_score, raw_score, time_taken = submit_quiz(quiz_id)
 
         quiz_key = client.key(QUIZZES, int(quiz_id))
         if not client.get(quiz_key):
             return jsonify({'error': 'Invalid quiz ID'}), 400
 
-        # TODO Calculate quiz scores when the candidate hits Submit Quiz
         new_score = datastore.entity.Entity(key=client.key(SCORES))
         new_score.update(
             {
-                'CandidateName': data['CandidateName'],
-                'PercentScore': data['PercentScore'],
-                'RawScore': data['RawScore'],
-                'TimeTaken': data['TimeTaken'],
+                'CandidateName': candidate_name,
+                'PercentScore': percent_score,
+                'RawScore': raw_score,
+                'TimeTaken': time_taken,
                 'QuizID': int(quiz_id)
             }
         )
@@ -84,8 +64,11 @@ def quizzes_get_quiz(quiz_id):
             score = client.get(client.key(SCORES, score_id))
             scores.append(score)  # append all of that individual Score's 'Score' attributes as a single object
 
-        # TODO Decide on where to redirect candidate after they hit 'Submit Quiz'
-        return redirect('/'), 201
+        return f'''
+            <script>
+                window.location.href = '/quizzes/{quiz_id}/scores/{new_score.id}';
+            </script>
+        ''', 201
 
     # This is what the candidate sees to take the quiz
     elif request.method == 'GET':
@@ -269,8 +252,10 @@ def quizzes_delete_put_patch(quiz_id):
             # Also, include the correct answer in the tuple
             question_answer_pairs.append((question, '|'.join(options), question['CorrectAnswer']))
 
-        return render_template("quizzes_edit.j2", quiz=quiz, quiz_name=quiz_name,
-                               question_answer_pairs=question_answer_pairs), 200
+        return render_template(
+            "quizzes_edit.j2", quiz=quiz, quiz_name=quiz_name,
+            question_answer_pairs=question_answer_pairs
+        ), 200
 
 
 def add_question_to_quiz(quiz_id, question_data):
@@ -357,3 +342,55 @@ def create_quiz(data):
 def get_quiz(quiz_id):
     key = client.key(QUIZZES, int(quiz_id))
     return client.get(key)
+
+
+def submit_quiz(quiz_id):
+    quiz = get_quiz(quiz_id)
+    question_bank = {}
+
+    # First, get the questions from the question bank
+    for question_id in quiz['QuestionIDs']:
+        question = client.get(client.key(QUESTIONS, int(question_id)))
+        question_bank[question_id] = {
+            'id': question_id,
+            'question': question['QuestionText'],
+            'answers': question['AnswerChoices'],
+            'correct_answer': question['CorrectAnswer']
+        }
+
+    data = request.form
+
+    result = calculate_score(question_bank, data)
+
+    candidate_name = data['CandidateName']
+    score = result['score']
+    total = result['total']
+    percent = (score / total) * 100
+    percent_score = f' { percent } % '
+    raw_score = f' { score } of { total } '
+    time_taken = data['timeTaken']
+
+    return candidate_name, percent_score, raw_score, time_taken
+
+
+def calculate_score(questions, selected_answers):
+    score = 0
+    answers_lhs = []
+    answers_rhs = []
+    for question in questions:
+        answers_lhs.append(questions[question]['correct_answer'])
+    for key, value in selected_answers.items():
+        if 'CandidateName' in key or 'timeTaken' in key:
+            continue
+        answers_rhs.append(int(value))
+
+    for i in range(len(questions)):
+        if answers_lhs[i] == answers_rhs[i]:
+            score += 1
+
+    result = {
+        'score': score,
+        'total': len(questions)
+    }
+
+    return result

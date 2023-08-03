@@ -37,7 +37,6 @@ def get_post_scores(quiz_id):
         quizzes = list(quiz_query.fetch())
         for quiz in quizzes:
             if quiz.id == int(quiz_id):
-
                 new_score = datastore.entity.Entity(key=client.key(SCORES))
                 new_score.update(
                     {
@@ -98,9 +97,14 @@ def delete_get_score(quiz_id, score_id):
         for s_id in quiz['ScoreIDs']:
             if s_id == int(score_id):
                 score = client.get(client.key(SCORES, int(score_id)))
+                split_score = int((score["RawScore"]).split(' ')[1])
 
-                return render_template("score.j2", score=score, score_id=int(score_id), quiz_name=quiz_name,
-                                       quiz_id=int(quiz_id)),\
+                return render_template(
+                    "score.j2", score=score, total_questions=int((score["RawScore"]).split(' ')[3]), score_id=int(
+                        score_id
+                    ), quiz_name=quiz_name,
+                    quiz_id=int(quiz_id)
+                    ), \
                        200
 
         return 'Score by Score ID not found', 400

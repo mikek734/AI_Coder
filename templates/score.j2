@@ -5,14 +5,61 @@
 <h1>{{ score.CandidateName if score.CandidateName else 'N/A' }}'s Score Report for Quiz: {{ quiz_name }} </h1>
 
 <div class="report-summary">
-  <p>PercentScore: {{ score.PercentScore }}</p>
-  <p>RawScore: {{ score.RawScore }}</p>
-  <p>TimeTaken: {{ score.TimeTaken }}</p>
-
+  <p>Percent Score: {{ score.PercentScore }}</p>
+  <p>Raw Score: {{ score.RawScore }}</p>
+  <p>Time Taken: {{ score.TimeTaken }}</p>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Add the container element for the pie chart -->
+  <div id="chart-container">
+    <canvas id="rawScoreChart"></canvas>
+  </div>
+  <br>
+  <br>
   <a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz_id) }}" class="btn">
     View All Scores
   </a>
 </div>
+
+
+
+<style>
+  /* Add custom CSS to control the size of the container holding the canvas */
+  #chart-container {
+    width: 250px; /* Adjust the width as needed */
+    height: 250px; /* Adjust the height as needed */
+  }
+</style>
+
+{% block scripts %}
+<script>
+    var rawScoreChart = document.getElementById('rawScoreChart').getContext('2d');
+    var rawScoreValue = parseInt("{{ score.RawScore.split(' ')[1] }}");
+    var totalQuestions = {{ total_questions }}; // Ensure total_questions is accessible within JavaScript
+
+    var rawScoreData = {
+        labels: ['Correct', 'Incorrect'],
+        datasets: [{
+            data: [rawScoreValue, totalQuestions - rawScoreValue],
+            backgroundColor: ['#36A2EB', '#FF6384'],
+            borderWidth: 1
+        }]
+    };
+
+    var rawScoreChartConfig = {
+        type: 'pie',
+        data: rawScoreData,
+        options: {
+            responsive: true,
+            legend: {
+                position: 'bottom'
+            }
+        }
+    };
+
+    var rawScoreChartInstance = new Chart(rawScoreChart, rawScoreChartConfig);
+</script>
+{% endblock %}
+
 
 
 {% endblock %}
