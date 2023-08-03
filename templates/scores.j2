@@ -7,13 +7,25 @@
 <table>
   <thead>
     <tr>
-      <th>Candidate Name</th>
-      <th>Percent Score</th>
-      <th>Raw Score</th>
-      <th>Time Taken</th>
+      <th onclick="sortTable(0)">
+        Candidate Name
+        <span class="sort-icon">&#x25B2;&#x25BC;</span>
+      </th>
+      <th onclick="sortTable(1)">
+        Percent Score
+        <span class="sort-icon">&#x25B2;&#x25BC;</span>
+      </th>
+      <th onclick="sortTable(2)">
+        Raw Score
+        <span class="sort-icon">&#x25B2;&#x25BC;</span>
+      </th>
+      <th onclick="sortTable(3)">
+        Time Taken
+        <span class="sort-icon">&#x25B2;&#x25BC;</span>
+      </th>
     </tr>
   </thead>
-  
+
   <tbody>
     {% for score in scores %}
     <tr>
@@ -21,14 +33,76 @@
       <td>{{ score.PercentScore }}</td>
       <td>{{ score.RawScore }}</td>
       <td>{{ score.TimeTaken }}</td>
-          <td>
+      <td>
         <a href="{{ url_for('view_scores.delete_get_score', quiz_id=score.QuizID, score_id=score.id) }}">
-        View Score
+          View Score
         </a>
       </td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
+
+<script>
+  // Store the current sorting state for each column
+  const sortState = { 0: 'asc', 1: 'asc', 2: 'asc', 3: 'asc' };
+
+  // Function to sort the table by a specific column (columnIndex)
+  function sortTable(columnIndex) {
+    const table = document.querySelector('table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    rows.sort((a, b) => {
+      const aValue = a.children[columnIndex].textContent;
+      const bValue = b.children[columnIndex].textContent;
+
+      if (columnIndex === 0) {
+        // Sort by candidate name (alphabetically)
+        return aValue.localeCompare(bValue);
+      } else {
+        // Convert other columns to numeric values for proper sorting
+        return parseFloat(aValue) - parseFloat(bValue);
+      }
+    });
+
+    // Check the current sorting state and reverse the order if needed
+    if (sortState[columnIndex] === 'asc') {
+      rows.reverse();
+      sortState[columnIndex] = 'desc';
+    } else {
+      sortState[columnIndex] = 'asc';
+    }
+
+    // Update the arrow icons to indicate the sorting direction
+    const thCells = table.querySelectorAll('thead th');
+    thCells.forEach((th, index) => {
+      const sortIcon = th.querySelector('.sort-icon');
+      if (index === columnIndex) {
+        sortIcon.innerHTML = sortState[columnIndex] === 'asc' ? '&#x25B2;' : '&#x25BC;';
+      } else {
+        sortIcon.innerHTML = '&#x25B2;&#x25BC;';
+      }
+    });
+
+    // Clear the table body and reappend the sorted rows
+    while (tbody.firstChild) {
+      tbody.removeChild(tbody.firstChild);
+    }
+
+    rows.forEach(row => {
+      tbody.appendChild(row);
+    });
+  }
+</script>
+
+<style>
+  /* Style for the arrow icons */
+  .sort-icon {
+    font-size: 10px;
+    margin-left: 4px;
+    display: inline-block;
+  }
+</style>
 
 {% endblock %}
