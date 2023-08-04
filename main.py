@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from urllib.parse import quote_plus, urlencode
 from authlib.integrations.flask_client import OAuth
 from google.cloud import datastore
@@ -146,26 +146,27 @@ def login():
 @app.route("/callback", methods=["GET", "POST"])
 def callback():
     token = oauth.auth0.authorize_access_token()
-    
-    session["user"] = token
-    print(token)
 
     sub = token['userinfo']['sub']
     name = token['userinfo']['name']
     email = token['userinfo']['email']
     picture = token['userinfo']['picture']
 
+    # Fetch the updated user from the Datastore
+    user = fetch_user(sub)
 
-    print(sub, name, email, picture)
-
-    key = client.key('User', sub)
-    user = client.get(key)
-
-    print(user)
+    # Update the session with the necessary user information
+    session["user"] = {
+        "sub": sub,
+        "name": user["name"],
+        "email": email,
+        "picture": user["picture"]  # Use the picture URL from the Datastore
+    }
 
     store_user(sub, name, email, picture)
 
     return redirect("/")
+
 
 
 @app.route("/logout")
@@ -187,7 +188,7 @@ def logout():
 @app.route('/')
 def home():
     if session.get('user'):
-        return redirect(url_for('user_profile', sub=session['user']['userinfo']['sub']))
+        return redirect(url_for('user_profile', sub=session['user']['sub']))
     else:
         return render_template("home.html")
 
@@ -196,13 +197,15 @@ def home():
 def user_profile(sub):
     print("Received sub:", sub)
 
-    query = client.query(kind='User')
-    query.add_filter('sub', '=', sub)
-    user = list(query.fetch())[0]
-    print(request.url)
+    # Fetch the user from the session
+    user = session.get('user')
+
+    if not user:
+        # User is not logged in or session expired
+        return redirect(url_for('login'))
 
     print("User:", user)
-    
+
     return render_template('user_profile.html', user=user)
 
 
@@ -258,9 +261,18 @@ def update_name(sub):
 
         # Save the changes to the Datastore using the 'put' method of the client
         client.put(user)
-        print(user['name'])
 
-        print(session['user'])
+        user = fetch_user(sub)
+        print("after fetch:", user['name'])
+
+        session['user'] = user
+
+        sub = user['sub']
+        name = user['name']
+        email = user['email']
+        picture = user['picture']
+
+        store_user(sub, name, email, picture)
 
         return redirect(url_for('user_profile', sub=sub))
     else:
@@ -284,22 +296,23 @@ def update_picture(sub):
         print("IN POST NOW")
         picture = request.form['picture']
 
-        # chatgpt fixed claudes function (WEEK4)
-        print("before update:",user['picture'])
         user['picture'] = picture  # Update the 'name' property directly
-        print("after update:", user['picture'])
 
         # Save the changes to the Datastore using the 'put' method of the client
         client.put(user)
-        print("after put:",user['picture'])
 
         user = fetch_user(sub)
         print("after fetch:", user['picture'])
 
         session['user'] = user
-        print("after session:", user['picture'])
+        
+        sub = user['sub']
+        name = user['name']
+        email = user['email']
+        picture = user['picture']
 
-        print("Session user:", session['user'])
+        store_user(sub, name, email, picture)
+
 
         return redirect(url_for('user_profile', sub=sub))
 
@@ -312,10 +325,19 @@ def update_picture(sub):
 # updated by Claude to because deletion and page redirection wasn't working (WEEK 4)
 @app.route('/delete_account/<sub>', methods=['POST', 'GET'])
 def delete_account(sub):
+    
+    print("Received sub:", sub)
 
     if request.method == 'POST':
-        user_key = client.key('User', sub)
-        user = client.get(user_key)
+
+        query = client.query(kind='User')
+        query.add_filter('sub', '=', sub)
+        user = list(query.fetch())[0]
+        print("User:", user)
+        print(request.url)
+
+        user_key = client.key(users_kind, sub)
+        print("User key:", user_key)
 
         if user is None:
             return {'Error': 'No user with this sub exists'}, 404       
@@ -332,12 +354,12 @@ def delete_account(sub):
 # CLAUDE (WEEK4)  
 @app.route('/scores/<sub>')
 def scores(sub):
-    return render_template('scores.html')
+    return render_template('scores.html', sub=sub)
 
 # CLAUDE (WEEK4)  
 @app.route('/quizzes/<sub>')
 def quizzes(sub):
-    return render_template('quizzes.html')
+    return render_template('quizzes.html', sub=sub)
 
 if __name__ == '__main__':
     app.run(debug=True)
