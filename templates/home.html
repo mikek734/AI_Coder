@@ -4,7 +4,7 @@
     <title>Home Page</title>
   </head>
   <body>
-    {% if session %}
+    {% if session.user %}
         {% set sub = session.user.sub %}
     {% else %}
         <h1>Welcome to our Quiz Application!</h1>
