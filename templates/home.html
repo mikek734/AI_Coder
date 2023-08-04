@@ -1,0 +1,15 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Home Page</title>
+  </head>
+  <body>
+    {% if session %}
+        {% set sub = session.user.sub %}
+    {% else %}
+        <h1>Welcome to our Quiz Application!</h1>
+        <p>Please log in to get started.</p>
+        <p><a href="/login">Login</a></p>
+    {% endif %}
+  </body>
+</html>

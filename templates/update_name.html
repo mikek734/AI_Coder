@@ -1,0 +1,17 @@
+<h2>Update Name</h2>
+
+<p>
+  Sub: {{ user.sub }}     
+</p>
+
+<form method="POST" action="{{ url_for('update_name', sub=user.sub) }}">
+
+  <label>Name:</label>
+  <input name="name" value="{{ user.name }}">
+  
+  <button type="submit">Update</button>
+
+</form>
+
+<a href="{{ url_for('home') }}">Cancel</a>
+
