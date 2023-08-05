@@ -15,18 +15,36 @@ ANSWERS = "answers"
 
 view_quizzes = Blueprint('view_quizzes', __name__)
 
+
 # PROTECTED ROUTE
 # View all Quizzes made by User
 @view_quizzes.route('/quizzes', methods=['GET'])
 def quizzes_get():
     if request.method == 'GET':
-        # TODO add Authentication
-        # payload = verify_jwt(request)
+        payload = verify_jwt(request)
+        if not payload:
+            return f'''
+                <script>
+                    window.location.href = '/';
+                </script>
+            ''', 201
+        user_query = client.query(kind=USERS)
+        all_users = []
+        users = list(user_query.fetch())
+        all_users.extend(users)
+        print(f'all users: {all_users}')
+        for user in all_users:
+            print(f'This is a user: {user}')
+            if user["sub"] == payload["sub"]:
+                quiz_query = client.query(kind=QUIZZES)
+                quizzes = list(quiz_query.fetch())
+                results = []
+                for quiz in quizzes:
+                    if user["sub"] == quiz["UserID"]:
+                        results.append(quiz)
 
-        query = client.query(kind=QUIZZES)
-        quizzes = list(query.fetch())
-
-        return render_template("quizzes.j2", quizzes=quizzes), 200
+                return render_template("quizzes.j2", quizzes=results), 200
+        return redirect("/"), 201
 
 
 # ROUTE WHERE CANDIDATE TAKES THE QUIZ
@@ -96,7 +114,8 @@ def quizzes_get_quiz(quiz_id):
 @view_quizzes.route('/quizzes/add', methods=['POST', 'GET'])
 def quizzes_post():
     if request.method == 'POST':
-        # TODO Add Authentication
+
+        payload = verify_jwt(request)
         data = request.form
 
         # Rearranging the form data that was sent over by create_quiz.j2
@@ -115,18 +134,6 @@ def quizzes_post():
                 answer_num = int(nums[1])
                 questions[question_num]['answers'][answer_num] = value
 
-        # To be able to print out the questions/answers
-        # for question_num, question in questions.items():
-        #
-        #     print(f"Question {question_num}: {question['question']} {question['correct']}")
-        #
-        #     answers = question['answers']
-        #
-        #     for answer_num, answer in answers.items():
-        #         print(f"  Answer {answer_num}: {answer}")
-        #
-        #     print()
-
         # Validate the quiz name
         for key, value in data.items():
             if 'QuizName' in key:
@@ -135,16 +142,14 @@ def quizzes_post():
                 except ValueError as e:
                     return jsonify({'error': str(e)}), 400
 
-        # Validate the questions
-
         # Validate the user
-        user_key = client.key(USERS, data['UserID'])
+        user_key = client.key(USERS, payload["sub"])
         user = client.get(user_key)
 
         if not user:
-            return jsonify({'error': 'Invalid user'}), 400
+            return jsonify({'error': 'User does not exist. Please create one.'}), 400
 
-        quiz = create_quiz(data)
+        quiz = create_quiz(data, payload)
         client.put(quiz)
 
         result = questions_get_post(request, questions, quiz_id=quiz.id)
@@ -165,6 +170,7 @@ def quizzes_delete_put_patch(quiz_id):
         data = request.get_json()
 
         # TODO Add Authentication
+        payload = verify_jwt(request)
         # Extract and validate quiz data
 
         # Extract questions from the data
@@ -199,7 +205,7 @@ def quizzes_delete_put_patch(quiz_id):
         quiz = client.get(key)
 
         # Update the quiz with new data
-        quiz = update_quiz(quiz, data)
+        quiz = update_quiz(quiz, data, payload)
         client.put(quiz)
 
         # Extract questions from the data
@@ -310,23 +316,23 @@ def validate_quiz_data(data):
         raise ValueError('Quiz name must be a string')
 
 
-def update_quiz(quiz, data):
+def update_quiz(quiz, data, payload):
     quiz['QuizName'] = data['QuizName']
     quiz['NumberOfQuestions'] = data['NumberOfQuestions']
-    quiz['LastModified'] = data['LastModified']
-    quiz['UserID'] = quiz['UserID']
+    quiz['LastModified'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    quiz['UserID'] = payload["sub"]
 
     return quiz
 
 
-def create_quiz(data):
+def create_quiz(data, payload):
     quiz = datastore.entity.Entity(key=client.key(QUIZZES))
     quiz.update(
         {
             'QuizName': data['QuizName'],
             'NumberOfQuestions': data['NumberOfQuestions'],
             'LastModified': datetime.now().strftime("%m/%d/%Y %H:%M:%S"),
-            'UserID': data['UserID'],
+            'UserID': payload["sub"],
             'QuestionIDs': [
 
             ],
@@ -366,6 +372,7 @@ def submit_quiz(quiz_id):
     score = result['score']
     total = result['total']
     percent = (score / total) * 100
+    percent = "{:.2f}".format(percent)
     percent_score = f' { percent } % '
     raw_score = f' { score } of { total } '
     time_taken = data['timeTaken']

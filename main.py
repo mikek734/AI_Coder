@@ -92,7 +92,8 @@ def callback():
     session['jwt_payload'] = None
     session['profile'] = None
 
-    auth0.authorize_access_token()
+    token = auth0.authorize_access_token()
+    session["user"] = token["id_token"]  # this is the JWT token
     resp = auth0.get('userinfo')
     userinfo = resp.json()
 

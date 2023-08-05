@@ -22,7 +22,11 @@
 
   {% for quiz in quizzes %}
   <tr>
-    <td>{{ quiz.QuizName }}</td>
+    <td>
+      <a href="{{ url_for('view_questions.get_quiz_questions', quiz_id=quiz.id) }}">
+        {{ quiz.QuizName }}
+      </a>
+    </td>
     <td>{{ quiz.NumberOfQuestions }}</td>
     <td>{{ quiz.LastModified }}</td>
     <td>

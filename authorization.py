@@ -2,6 +2,7 @@ from flask import json, jsonify, request, Blueprint
 from constants import CLIENT_ID, DOMAIN, ALGORITHMS
 from six.moves.urllib.request import urlopen
 from jose import jwt
+from flask import session
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -24,15 +25,25 @@ def handle_auth_error(ex):
 
 # Verify the JWT in the request's Authorization header
 def verify_jwt(request):
-    if 'Authorization' in request.headers:
-        auth_header = request.headers['Authorization'].split()
-        token = auth_header[1]
+    # print(f'Request headers: {request.headers}')
+    # if 'Authorization' in request.headers:
+    #     auth_header = request.headers['Authorization'].split()
+    #     token = auth_header[1]
+    # else:
+    #     raise AuthError(
+    #         {"code": "no auth header",
+    #          "description":
+    #              "Authorization header is missing"}, 401
+    #         )
+    if 'user' in session:
+        token = session["user"]
     else:
-        raise AuthError(
-            {"code": "no auth header",
-             "description":
-                 "Authorization header is missing"}, 401
-        )
+        return
+        # raise AuthError(
+        #     {"code": "no auth header",
+        #      "description":
+        #         "Authorization header is missing"}, 401
+        #      )
     print("Authorization header exists")
 
     jsonurl = urlopen("https://" + DOMAIN + "/.well-known/jwks.json")
