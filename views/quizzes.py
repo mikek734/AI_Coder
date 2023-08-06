@@ -32,9 +32,9 @@ def quizzes_get():
         all_users = []
         users = list(user_query.fetch())
         all_users.extend(users)
-        # print(f'all users: {all_users}')
+        print(f'all users: {all_users}')
         for user in all_users:
-            # print(f'This is a user: {user}')
+            print(f'This is a user: {user}')
             if user["sub"] == payload["sub"]:
                 quiz_query = client.query(kind=QUIZZES)
                 quizzes = list(quiz_query.fetch())
@@ -119,7 +119,6 @@ def quizzes_post():
         data = request.form
 
         # Rearranging the form data that was sent over by create_quiz.j2
-        print(data)
         questions = {}
 
         # To identify each question, its 4 answer choices, and the correct answer
@@ -169,7 +168,6 @@ def quizzes_delete_put_patch(quiz_id):
     if request.method == 'PATCH':
         data = request.form
         questions = []
-        print('data:', data)
 
         # Process delete flags first
         for key, value in data.items():

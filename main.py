@@ -86,117 +86,192 @@ def login():
 
 
 # updated by Claude to check if user already exists (WEEK 4)
-@app.route('/callback')
+@app.route("/callback", methods=["GET", "POST"])
 def callback():
-    # Initialize session
-    session['jwt_payload'] = None
-    session['profile'] = None
+    token = oauth.auth0.authorize_access_token()
 
-    token = auth0.authorize_access_token()
-    session["user"] = token["id_token"]  # this is the JWT token
-    resp = auth0.get('userinfo')
-    userinfo = resp.json()
+    sub = token['userinfo']['sub']
+    name = token['userinfo']['name']
+    email = token['userinfo']['email']
+    picture = token['userinfo']['picture']
 
-    # Check if user already exists
-    user_key = client.key(USERS, userinfo['sub'])
-    existing_user = client.get(user_key)
+    # Fetch the updated user from the Datastore
+    user = fetch_user(sub)
 
-    if not existing_user:
-        # User does not exist yet, create new Entity
-        user = datastore.Entity(key=user_key)
-        user.update({
-            'email': userinfo['email'],
-            'name': userinfo['name'],
-            'picture': userinfo['picture'],
-            'sub': userinfo['sub']
-        })
-        client.put(user)
-
-    # Store token and redirect to home
-    session['jwt_payload'] = userinfo
-    session['profile'] = {
-        'user_id': userinfo['sub'],
-        'name': userinfo['name'],
-        'picture': userinfo['picture']
+    # Update the session with the necessary user information
+    session["user"] = {
+        "sub": sub,
+        "name": user["name"],
+        "email": email,
+        "picture": user["picture"]  # Use the picture URL from the Datastore
     }
+
+    store_user(sub, name, email, picture)
     return redirect(url_for('user_profile'))
 
 
-# CLAUDE (WEEK4)
-def get_user(sub):
-    key = client.key(USERS, sub)
-    return client.get(key)
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(
+        "https://" + DOMAIN
+        + "/v2/logout?"
+        + urlencode(
+            {
+                "returnTo": url_for("index", _external=True),
+                "client_id": CLIENT_ID,
+            },
+            quote_via=quote_plus,
+        )
+    )
 
 
 @app.route('/user_profile')
 def user_profile():
-    sub = session['profile']['user_id']
-    user_key = client.key(USERS, sub)
-    user = client.get(user_key)
+    # Fetch the user from the session
+    user = session.get('user')
+
+    if not user:
+        # User is not logged in or session expired
+        return redirect(url_for('login'))
+
+    print("User:", user)
 
     return render_template('user_profile.html', user=user)
+
+
+def store_user(sub, name, email, picture):
+    # Check if user already exists in Datastore
+    query = client.query(kind=USERS)
+    query.add_filter("sub", "=", sub)
+    existing_user = list(query.fetch())
+
+    # Create or update the user entity
+    user_entity = None
+    if existing_user:
+        user_entity = existing_user[0]
+    else:
+        user_entity = datastore.Entity(key=client.key(USERS))
+        user_entity["sub"] = sub
+
+    user_entity["name"] = name
+    user_entity["email"] = email
+    user_entity["picture"] = picture
+
+    client.put(user_entity)
+
+
+def fetch_user(sub):
+    query = client.query(kind='User')
+    query.add_filter('sub', '=', sub)
+
+    # Convert to list
+    users = list(query.fetch())
+
+    return users[0]
 
 
 # CLAUDE (WEEK4)
 @app.route('/update_name/<sub>', methods=['GET', 'POST'])
 def update_name(sub):
-    user = get_user(sub)
+    print("Received sub:", sub)
+
+    query = client.query(kind='User')
+    query.add_filter('sub', '=', sub)
+    user = list(query.fetch())[0]
+    print(request.url)
+
+    print("User:", user)
 
     if request.method == 'POST':
+        print("IN POST NOW")
         name = request.form['name']
 
         # chatgpt fixed claudes function (WEEK4)
         user['name'] = name  # Update the 'name' property directly
 
         # Save the changes to the Datastore using the 'put' method of the client
-        client = datastore.Client()
         client.put(user)
 
+        user = fetch_user(sub)
+        print("after fetch:", user['name'])
+
+        session['user'] = user
+
+        sub = user['sub']
+        name = user['name']
+        email = user['email']
+        picture = user['picture']
+
+        store_user(sub, name, email, picture)
+        print(session)
         return redirect(url_for('user_profile', sub=sub))
+    else:
+        print("Sending:", user)
+        return render_template('update_name.html', user=user)
 
-    return render_template('update_name.html', user=user)
 
-
-# CLAUDE (WEEK4)
 @app.route('/update_picture/<sub>', methods=['GET', 'POST'])
 def update_picture(sub):
-    user = get_user(sub)
+    print("Received sub:", sub)
+
+    query = client.query(kind='User')
+    query.add_filter('sub', '=', sub)
+    user = list(query.fetch())[0]
+    print(request.url)
+
+    print("User:", user)
 
     if request.method == 'POST':
+        print("IN POST NOW")
         picture = request.form['picture']
 
-        # chatgpt fixed claudes function (WEEK4)
-        user['picture'] = picture  # Update the 'picture' property directly
+        user['picture'] = picture  # Update the 'name' property directly
 
         # Save the changes to the Datastore using the 'put' method of the client
-        client = datastore.Client()
         client.put(user)
+
+        user = fetch_user(sub)
+        print("after fetch:", user['picture'])
+
+        session['user'] = user
+
+        sub = user['sub']
+        name = user['name']
+        email = user['email']
+        picture = user['picture']
+
+        store_user(sub, name, email, picture)
 
         return redirect(url_for('user_profile', sub=sub))
 
-    return render_template('update_picture.html', user=user)
+    else:
+        print("Sending:", user)
+        return render_template('update_picture.html', user=user)
 
 
 # updated by Claude to because deletion and page redirection wasn't working (WEEK 4)
-@app.route('/delete_account/<sub>', methods=['GET', 'POST'])
+@app.route('/delete_account/<sub>', methods=['POST', 'GET'])
 def delete_account(sub):
-    # Initialize session
-    session['jwt_payload'] = None
-    session['profile'] = None
+    print("Received sub:", sub)
 
     if request.method == 'POST':
 
-        # Delete account
-        user_key = client.key('User', sub)
+        query = client.query(kind='User')
+        query.add_filter('sub', '=', sub)
+        user = list(query.fetch())[0]
+        print("User:", user)
+        print(request.url)
+
+        user_key = client.key(USERS, sub)
+        print("User key:", user_key)
+
+        if user is None:
+            return {'Error': 'No user with this sub exists'}, 404
+
         client.delete(user_key)
 
-        # Flash confirmation message
-        flash('Account deleted', 'success')
-
-        # Clear session
-        session.clear()
-
-        return redirect(url_for('login'))
+        return redirect(url_for('logout'))
 
     else:
 
@@ -224,7 +299,7 @@ def send_email(quiz_id, quiz_name, to_email):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
 
 if __name__ == '__main__':

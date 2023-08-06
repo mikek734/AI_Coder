@@ -1,27 +1,26 @@
-{% extends "base.html" %}
-
-{% block content %}
-<button onclick="location.href='{{ url_for('view_quizzes.quizzes_get') }}'" type="button">View Quizzes</button>
 <h1>{{ user.name }}</h1>
 
 <p>
-  Email: {{ user.email }}
+    <img src="{{ user.picture }}" width="100">      
+    <a href="{{ url_for('update_picture', sub=user.sub) }}">Edit</a>
 </p>
 
 <p>
-  Name: {{ user.name }}  
-
-  <a href="{{ url_for('update_name', sub=user.sub) }}">Edit</a>
+    Name: {{ user.name }}    
+    <a href="{{ url_for('update_name', sub=user.sub) }}">Edit</a>
 </p>
+
 
 <p>
-  <img src="{{ user.picture }}" width="100">
-  
-  <a href="{{ url_for('update_picture', sub=user.sub) }}">Edit</a>
-
+    Email: {{ user.email }}
 </p>
 
+<a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz_id) }}">Scores</a>
+<br><br>
+<a href="{{ url_for('view_quizzes.quizzes_get') }}">Quizzes</a>
 <br><br>
 <a href="{{ url_for('delete_account', sub=user.sub) }}">Delete Account</a>
+<br><br>
 
-{% endblock %}
+<p><a href="/logout">Logout</a></p>
+<div><pre>{{pretty}}</pre></div>
