@@ -10,84 +10,112 @@
         <label for="QuizName">Quiz Name: </label>
         <input type="text" id="QuizName" name="QuizName" value="{{ quiz_name }}" required>
         <div id="questionContainer">
-            {% for question, answer_string, correct_answer in question_answer_pairs %}
+            {% set question_index = [1] %}
+            {% for question in questions %}
                 <div class="question">
                     <!-- The input field for the question text -->
-                    <input type="text" name="question{{ loop.index }}" value="{{ question.QuestionText }}" placeholder="Question">
-                    {% set answers = answer_string.split('|') %}
-                    {% for answer in answers %}
-                        <input type="radio" name="correctAnswer{{ loop.index }}" id="answer{{ loop.index }}" value="{{ loop.index }}" {% if loop.index == correct_answer %}checked{% endif %}>
-                        <label for="answer{{ loop.index }}">
-                            <input type="text" name="answer{{ loop.index }}_{{ loop.index }}" value="{{ answer }}" placeholder="Answer">
+                    <input type="text" name="questions[{{ question_index[0] }}][QuestionText]" value="{{ question.QuestionText }}" placeholder="Question">
+                    <!-- Use question_index for both question and answer index -->
+                    {% for answer_index in range(4) %}
+                        <input type="radio" name="questions[{{ question_index[0] }}][correctAnswer]" id="answer{{ question_index[0] }}_{{ answer_index }}" value="{{ answer_index }}" {% if answer_index == (question.CorrectAnswer|int - 1)|int %}checked{% endif %}>
+                        <label for="answer{{ question_index[0] }}_{{ answer_index }}">
+                            <input type="text" name="questions[{{ question_index[0] }}][answers][{{ answer_index }}]" value="{{ question.AnswerChoices[answer_index] }}" placeholder="Answer">
                         </label>
                     {% endfor %}
                     <button type="button" class="removeQuestion" data-id="{{ question.id }}">Remove Question</button>
+                    <!-- Add hidden input field for existing question ID -->
+                    <input type="hidden" name="questions[{{ question_index[0] }}][id]" value="{{ question.id }}">
                 </div>
+                {% set _ = question_index.append(question_index.pop() + 1) %}
             {% endfor %}
         </div>
+
         <button type="button" id="addQuestion">Add Question</button>
         <button type="submit">Save Quiz</button>
         <button onclick="location.href='{{ url_for('view_quizzes.quizzes_get') }}'" type="button">Cancel</button>
     </form>
 
-    <!-- Your JavaScript code here... -->
-</body>
-</html>
-
-
-    <script>
-        var answerCount = 0;
-        $(document).ready(function() {
-            var questionCount = $("#questionContainer .question").length;
-
-            var questionHTML = function(count) {
-            answerCount = 0;
+<script>
+    $(document).ready(function() {
+        var questionHTML = function(count) {
             return '<div class="question">' +
-              '<input type="text" name="question' + (count + 1) + '" placeholder="Question">' +
+                      '<input type="text" name="questions[' + count + '][QuestionText]" placeholder="Question">' +
+                      answerHTML(count, 0) +
+                      answerHTML(count, 1) +
+                      answerHTML(count, 2) +
+                      answerHTML(count, 3) +
+                      '<button type="button" class="removeQuestion">Remove Question</button>' +
+                   '</div>';
+        };
 
-              // Generate numbered answers
-              answerHTML(questionCount, count) +
-              answerHTML(questionCount, count) +
-              answerHTML(questionCount, count) +
-              answerHTML(questionCount, count) +
-              '<button type="button" class="removeQuestion">Remove Question</button>' +
-              '</div>';
+        var answerHTML = function(questionIndex, answerIndex) {
+            return '<input type="radio" name="questions[' + questionIndex + '][correctAnswer]" id="answer' + questionIndex + '_' + answerIndex + '" value="' + answerIndex + '">' +
+                   '<label for="answer' + questionIndex + '_' + answerIndex + '">' +
+                       '<input type="text" name="questions[' + questionIndex + '][answers][' + answerIndex + ']" placeholder="Answer">' +
+                   '</label>';
+        };
+
+        $('#addQuestion').click(function() {
+            var questionIndex = $("#questionContainer .question").length + 1; // Calculate the index based on the number of existing questions plus 1
+            $('#questionContainer').append(questionHTML(questionIndex));
+        });
+
+        $('#questionContainer').on('click', '.removeQuestion', function() {
+            var questionDiv = $(this).parent();
+            var questionId = $(this).attr('data-id'); // Get the question ID
+
+            if (questionId) {
+                $('<input>').attr({
+                    type: 'hidden',
+                    name: 'questions[' + questionId + '][delete]', // Use the question ID here
+                    value: 'true'
+                }).appendTo('#quizForm');
             }
 
-            var answerHTML = function(questionCount, count) {
-            answerCount++;
-            return '<input type="radio" name="correctAnswer' + count + '" id=" ' + answerCount + '" value=" ' + answerCount + '">' +
-            '<input name="answer_' + answerCount + '_' + (questionCount + 1) + '" placeholder="Answer">'
-            ;
-            }
+            questionDiv.remove(); // Remove the question from the DOM
 
-            $('#addQuestion').click(function() {
-                $('#questionContainer').append(questionHTML(questionCount));
-                questionCount++;
-            });
+            // Recount all the questions
+            $("#questionContainer .question").each(function(index) {
+                var newIndex = index + 1; // Increment index to align with 1-based numbering in template
+                $(this).find('input, label').each(function() {
+                    // Update the name attributes
+                    var nameAttr = $(this).attr('name');
+                    if (nameAttr) {
+                        $(this).attr('name', nameAttr.replace(/\[\d+\]/, '[' + newIndex + ']'));
+                    }
 
-            $('#questionContainer').on('click', '.removeQuestion', function() {
-                $(this).parent().remove();
-                questionCount--;
-            });
+                    // Update the id attributes
+                    var idAttr = $(this).attr('id');
+                    if (idAttr) {
+                        $(this).attr('id', idAttr.replace(/\d+_/, newIndex + '_'));
+                    }
 
-            $('#quizForm').submit(function(e) {
-                e.preventDefault();
-                // Here you would send the form data to your Flask application
-
-                var formData = $(this).serialize();
-
-                $.ajax({
-                  url: '/quizzes/add',  // Modify this to match your edit route
-                  method: 'POST',
-                  data: formData,
-                  success: function(response) {
-                    // Handle success
-                    window.location.href = '/quizzes';
-                  }
+                    // Update the for attributes (for label elements)
+                    var forAttr = $(this).attr('for');
+                    if (forAttr) {
+                        $(this).attr('for', forAttr.replace(/\d+_/, newIndex + '_'));
+                    }
                 });
             });
         });
-    </script>
+
+        $('#quizForm').submit(function(e) {
+            e.preventDefault();
+            var formData = $(this).serialize();
+            var numberOfQuestions = $("#questionContainer .question").length; // Get the number of questions directly from the DOM
+            formData += '&NumberOfQuestions=' + numberOfQuestions; // Append the NumberOfQuestions to the serialized data
+
+            $.ajax({
+                url: '/quizzes/' + '{{ quiz.id }}' + '/edit',
+                method: 'PATCH',
+                data: formData,
+                success: function(response) {
+                    window.location.href = '/quizzes';
+                }
+            });
+        });
+    });
+</script>
+
 </body>
 </html>

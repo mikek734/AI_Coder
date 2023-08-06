@@ -32,9 +32,9 @@ def quizzes_get():
         all_users = []
         users = list(user_query.fetch())
         all_users.extend(users)
-        print(f'all users: {all_users}')
+        # print(f'all users: {all_users}')
         for user in all_users:
-            print(f'This is a user: {user}')
+            # print(f'This is a user: {user}')
             if user["sub"] == payload["sub"]:
                 quiz_query = client.query(kind=QUIZZES)
                 quizzes = list(quiz_query.fetch())
@@ -164,66 +164,49 @@ def quizzes_post():
 
 # PROTECTED ROUTE
 # DELETE, PUT, or PATCH a specific quiz
-@view_quizzes.route('/quizzes/<quiz_id>/edit', methods=['DELETE', 'PATCH', 'PUT', 'GET'])
+@view_quizzes.route('/quizzes/<quiz_id>/edit', methods=['DELETE', 'PATCH', 'GET'])
 def quizzes_delete_put_patch(quiz_id):
     if request.method == 'PATCH':
-        data = request.get_json()
+        data = request.form
+        questions = []
+        print('data:', data)
 
-        # TODO Add Authentication
-        payload = verify_jwt(request)
-        # Extract and validate quiz data
+        # Process delete flags first
+        for key, value in data.items():
+            if '[delete]' in key and value == 'true':
+                question_id_str = key.split('[')[1].split(']')[0]
+                question_id = int(question_id_str)
+                delete_question_from_quiz(quiz_id, question_id)
 
-        # Extract questions from the data
-        questions = data.get('questions', [])
+        # Determine the number of questions based on the keys in the data
+        num_questions = len([key for key in data.keys() if '[QuestionText]' in key])
 
-        # Process each question
-        for question_data in questions:
-            if 'id' in question_data:
-                # This is an existing question
-                if 'delete' in question_data and question_data['delete']:
-                    # If the delete field is present and set to true, delete the question
-                    delete_question_from_quiz(quiz_id, question_data['id'])
-                else:
-                    # If the delete field is absent or set to false, update the question
-                    update_question_in_quiz(quiz_id, question_data['id'], question_data)
-            else:
+        # Update the Quiz entity with the new NumberOfQuestions value
+        quiz_key = client.key(QUIZZES, int(quiz_id))
+        quiz = client.get(quiz_key)
+        quiz['NumberOfQuestions'] = num_questions  # Update the attribute
+        client.put(quiz)  # Save the changes
+
+        for i in range(1, num_questions + 1):
+            question_text = data.get(f'questions[{i}][QuestionText]')
+            answers = [data.get(f'questions[{i}][answers][{j}]') for j in range(4)]  # Assuming 4 answers
+            correct_answer = data.get(f'questions[{i}][correctAnswer]')
+            question_id = data.get(f'questions[{i}][id]')  # Extract the ID
+
+            question = {
+                'QuestionText': question_text,
+                'AnswerChoices': answers,
+                'CorrectAnswer': correct_answer,
+                'QuizID': int(quiz_id)
+            }
+            questions.append(question)
+
+            if question_id is None:
                 # This is a new question, add it
-                add_question_to_quiz(quiz_id, question_data)
-
-        return redirect('/quizzes'), 200
-
-    elif request.method == 'PUT':
-        data = request.get_json()
-        try:
-            validate_quiz_data(data)
-        except ValueError as e:
-
-            return jsonify({'error': str(e)}), 400
-
-        # Get existing quiz
-        key = client.key(QUIZZES, int(quiz_id))
-        quiz = client.get(key)
-
-        # Update the quiz with new data
-        quiz = update_quiz(quiz, data, payload)
-        client.put(quiz)
-
-        # Extract questions from the data
-        questions = data.get('questions', [])
-
-        # Process each question
-        for question_data in questions:
-            if 'id' in question_data:
-                # This is an existing question
-                if 'delete' in question_data and question_data['delete']:
-                    # If the delete field is present and set to true, delete the question
-                    delete_question_from_quiz(quiz_id, question_data['id'])
-                else:
-                    # If the delete field is absent or set to false, update the question
-                    update_question_in_quiz(quiz_id, question_data['id'], question_data)
+                add_question_to_quiz(quiz_id, question)
             else:
-                # This is a new question, add it
-                add_question_to_quiz(quiz_id, question_data)
+                # If the delete field is absent or set to false, update the question
+                update_question_in_quiz(int(question_id), question)
 
         return redirect('/quizzes'), 200
 
@@ -245,23 +228,14 @@ def quizzes_delete_put_patch(quiz_id):
     elif request.method == 'GET':
         quiz = client.get(client.key(QUIZZES, int(quiz_id)))
         quiz_name = quiz['QuizName']
-        question_answer_pairs = []
+        questions = []
 
-        # First, call all the Questions and add them to the viewing list
+        # Get the Questions and add them to the viewing list
         for question_id in quiz['QuestionIDs']:
             question = client.get(client.key(QUESTIONS, int(question_id)))
-            options = []
-            for answer in question['AnswerChoices']:
-                options.append(answer)
+            questions.append(question)
 
-            # Concatenate the question and its answers into one string
-            # Also, include the correct answer in the tuple
-            question_answer_pairs.append((question, '|'.join(options), question['CorrectAnswer']))
-
-        return render_template(
-            "quizzes_edit.j2", quiz=quiz, quiz_name=quiz_name,
-            question_answer_pairs=question_answer_pairs
-        ), 200
+        return render_template("quizzes_edit.j2", quiz=quiz, quiz_name=quiz_name, questions=questions), 200
 
 
 def add_question_to_quiz(quiz_id, question_data):
@@ -291,11 +265,11 @@ def delete_question_from_quiz(quiz_id, question_id):
     client.put(quiz)
 
     # DELETE Question from Question Entity
-    question = client.get(client.key(QUESTIONS, int(question_id)))
+    question = client.get(client.key(QUESTIONS, question_id))
     client.delete(question)
 
 
-def update_question_in_quiz(quiz_id, question_id, question_data):
+def update_question_in_quiz(question_id, question_data):
     # TODO Add Authentication
 
     # Get the existing question

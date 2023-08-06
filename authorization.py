@@ -44,16 +44,16 @@ def verify_jwt(request):
         #      "description":
         #         "Authorization header is missing"}, 401
         #      )
-    print("Authorization header exists")
+    # print("Authorization header exists")
 
     jsonurl = urlopen("https://" + DOMAIN + "/.well-known/jwks.json")
     jwks = json.loads(jsonurl.read())
-    print("JWKS")
-    print(jwks)
+    # print("JWKS")
+    # print(jwks)
     try:
         unverified_header = jwt.get_unverified_header(token)
-        print("UNVERIFIED_HEADER")
-        print(unverified_header)
+        # print("UNVERIFIED_HEADER")
+        # print(unverified_header)
     except jwt.JWTError:
         raise AuthError(
             {"code": "invalid_header",
@@ -61,7 +61,7 @@ def verify_jwt(request):
                  "Invalid header. "
                  "Use an RS256 signed JWT Access Token"}, 401
         )
-    print("Authorization header valid")
+    # print("Authorization header valid")
 
     if unverified_header["alg"] == "HS256":
         raise AuthError(
@@ -70,7 +70,7 @@ def verify_jwt(request):
                  "Invalid header. "
                  "Use an RS256 signed JWT Access Token"}, 401
         )
-    print("Authorization header not HS256")
+    # print("Authorization header not HS256")
 
     rsa_key = {}
     for key in jwks["keys"]:
@@ -113,13 +113,13 @@ def verify_jwt(request):
                      " token."}, 401
             )
 
-        print("token not expired")
-        print("claims valid")
-        print("authentication parsed")
+        # print("token not expired")
+        # print("claims valid")
+        # print("authentication parsed")
 
         return payload
     else:
-        print("no RSA key")
+        # print("no RSA key")
         raise AuthError(
             {"code": "no_rsa_key",
              "description":
