@@ -2,7 +2,7 @@
 
 {% block content %}
 <h1>All Scores for Quiz: {{ quiz_name }}</h1>
-<button onclick="location.href='{{ url_for('user_profile') }}'" type="button">View Profile</button>
+<button onclick="location.href='{{ url_for('user_profile', sub=sub) }}'" type="button">View Profile</button>
 <button onclick="location.href='{{ url_for('view_quizzes.quizzes_get') }}'" type="button">View Quizzes</button>
 
 <table>
