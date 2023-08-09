@@ -2,15 +2,15 @@
 
 {% block content %}
 
-<div class="quiz-header">
-  <h1>Your Quizzes</h1>
+<div lass="quiz-header"c>
+  <h1>Quizzes</h1>
 
   <button onclick="location.href='{{ url_for('user_profile') }}'" type="button">View Profile</button>
   <button onclick="location.href='{{ url_for('view_quizzes.quizzes_post') }}'" type="button">Create Quiz</button>
 
 </div>
-
-<table>
+<br>
+<table class="quiz-table">
   <tr>
     <th>Name</th>
     <th>Questions</th>
