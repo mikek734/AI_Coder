@@ -1,26 +1,37 @@
-<h1>{{ user.name }}</h1>
+{% extends 'base.html' %}
 
-<p>
-    <img src="{{ user.picture }}" width="100">      
-    <a href="{{ url_for('update_picture', sub=user.sub) }}">Edit</a>
-</p>
+{% block content %}
+<h1>User Profile</h1>
 
-<p>
-    Name: {{ user.name }}    
-    <a href="{{ url_for('update_name', sub=user.sub) }}">Edit</a>
-</p>
+<body>
+    <div class="container">
+        <h1>{{ user.name }}</h1>
 
+        <p>
+            <img src="{{ user.picture }}" width="100">
+            <a href="{{ url_for('update_picture', sub=user.sub) }}">Edit</a>
+        </p>
 
-<p>
-    Email: {{ user.email }}
-</p>
+        <p>
+            Name: {{ user.name }}
+            <a href="{{ url_for('update_name', sub=user.sub) }}">Edit</a>
+        </p>
 
-<a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz_id) }}">Scores</a>
-<br><br>
-<a href="{{ url_for('view_quizzes.quizzes_get') }}">Quizzes</a>
-<br><br>
-<a href="{{ url_for('delete_account', sub=user.sub) }}">Delete Account</a>
-<br><br>
+        <p>
+            Email: {{ user.email }}
+        </p>
 
-<p><a href="/logout">Logout</a></p>
-<div><pre>{{pretty}}</pre></div>
+        <a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz_id) }}">Scores</a>
+        <br><br>
+        <a href="{{ url_for('view_quizzes.quizzes_get') }}">Quizzes</a>
+        <br><br>
+        <a href="{{ url_for('delete_account', sub=user.sub) }}">Delete Account</a>
+        <br><br>
+
+        <p><a href="/logout">Logout</a></p>
+        <div><pre>{{pretty}}</pre></div>
+    </div>
+</body>
+
+{% endblock %}
+    ```
