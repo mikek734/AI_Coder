@@ -2,9 +2,9 @@
 
 {% block content %}
 
-<h1>{{ score.CandidateName if score.CandidateName else 'N/A' }}'s Score Report for Quiz: {{ quiz_name }} </h1>
+<h1 class="center-content">{{ score.CandidateName if score.CandidateName else 'N/A' }}'s Score Report for Quiz: {{ quiz_name }} </h1>
 
-<div class="report-summary">
+<div class="center-content">
   <p>Percent Score: {{ score.PercentScore }}</p>
   <p>Raw Score: {{ score.RawScore }}</p>
   <p>Time Taken: {{ score.TimeTaken }}</p>
@@ -15,7 +15,7 @@
   </div>
   <br>
   <br>
-  <a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz_id) }}" class="btn">
+  <a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz_id) }}" class="center-content">
     View All Scores
   </a>
 </div>

@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Edit Quiz</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-</head>
-<body>
+{% extends 'base.html' %}
+{% block content %}
     <h1>Edit Quiz</h1>
     <form id="quizForm">
         <label for="QuizName">Quiz Name: </label>
@@ -29,13 +24,13 @@
                 {% set _ = question_index.append(question_index.pop() + 1) %}
             {% endfor %}
         </div>
-
+        <br>
         <button type="button" id="addQuestion">Add Question</button>
         <button type="submit">Save Quiz</button>
         <button onclick="location.href='{{ url_for('view_quizzes.quizzes_get') }}'" type="button">Cancel</button>
     </form>
-
-<script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
     $(document).ready(function() {
         var questionHTML = function(count) {
             return '<div class="question">' +
@@ -117,5 +112,4 @@
     });
 </script>
 
-</body>
-</html>
+{% endblock %}

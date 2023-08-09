@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>All Scores for Quiz: {{ quiz_name }}</h1>
-<button onclick="location.href='{{ url_for('user_profile') }}'" type="button">View Profile</button>
-<button onclick="location.href='{{ url_for('view_quizzes.quizzes_get') }}'" type="button">View Quizzes</button>
-
-<table>
+<div>
+  <h1>All Scores for Quiz: {{ quiz_name }}</h1>
+  <button onclick="location.href='{{ url_for('user_profile') }}'" type="button">View Profile</button>
+  <button onclick="location.href='{{ url_for('view_quizzes.quizzes_get') }}'" type="button">View Quizzes</button>
+</div>
+<table class="quiz-table">
   <thead>
     <tr>
       <th onclick="sortTable(0)">

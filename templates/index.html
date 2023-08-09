@@ -2,9 +2,16 @@
 <html>
 <head>
     <title>Home Page</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='index.css') }}">
 </head>
 <body>
-    <h1>Welcome to our Quiz Application!</h1>
-    <p>Please <a href="{{ url_for('login') }}">log in</a> to get started.</p>
+    <div class="container">
+        <h1>Welcome to AI Coder: Technical Job Quiz Application!</h1>
+        <p class="first-paragraph">Please <a href="{{ url_for('login') }}">log in</a> to get started.</p>
+    </div>
+    <footer>
+        <p>Created by: Dionne Bang, Emilio Skinner, and Michael Kennedy</p>
+        <p>Project Source Code: <a href="https://github.com/MIKEK734/AI_CODER">https://github.com/MIKEK734/AI_CODER</a></p>
+    </footer>
 </body>
 </html>
