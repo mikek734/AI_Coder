@@ -84,6 +84,7 @@ def login():
         redirect_uri=url_for("callback", _external=True)
     )
 
+
 @app.route("/callback", methods=["GET", "POST"])
 def callback():
     token = oauth.auth0.authorize_access_token()
@@ -116,7 +117,6 @@ def callback():
     return redirect("/")
 
 
-
 @app.route("/logout")
 def logout():
     session.clear()
@@ -125,7 +125,7 @@ def logout():
         + "/v2/logout?"
         + urlencode(
             {
-                "returnTo": url_for("home", _external=True),
+                "returnTo": url_for("index", _external=True),
                 "client_id": CLIENT_ID,
             },
             quote_via=quote_plus,
@@ -134,17 +134,15 @@ def logout():
 
 
 @app.route('/')
-def home():
+def index():
     if session.get('user'):
         return redirect(url_for('user_profile', sub=session['user']['sub']))
     else:
-        return render_template("home.html")
+        return render_template("index.html")
 
 
-@app.route('/user_profile/<sub>')
-def user_profile(sub):
-    print("Received sub:", sub)
-
+@app.route('/user_profile')
+def user_profile():
     # Fetch the user from the session
     user = session.get('user')
 
@@ -176,6 +174,7 @@ def store_user(sub, name, email, picture):
     user_entity["picture"] = picture
 
     client.put(user_entity)  
+
 
 def fetch_user(sub):
     query = client.query(kind=USERS)
@@ -264,7 +263,6 @@ def update_picture(sub):
         picture = user['picture']
 
         store_user(sub, name, email, picture)
-
 
         return redirect(url_for('user_profile', sub=sub))
 
