@@ -173,7 +173,7 @@ def store_user(sub, name, email, picture):
     user_entity["email"] = email
     user_entity["picture"] = picture
 
-    client.put(user_entity)  
+    client.put(user_entity)
 
 
 def fetch_user(sub):
@@ -181,7 +181,7 @@ def fetch_user(sub):
     query.add_filter('sub', '=', sub)
 
     # Convert to list
-    users = list(query.fetch())   
+    users = list(query.fetch())
 
     if users:
         # Return the first user found
@@ -194,7 +194,6 @@ def fetch_user(sub):
 # CLAUDE (WEEK4)
 @app.route('/update_name/<sub>', methods=['GET', 'POST'])
 def update_name(sub):
-    
     print("Received sub:", sub)
 
     query = client.query(kind=USERS)
@@ -203,7 +202,7 @@ def update_name(sub):
     print(request.url)
 
     print("User:", user)
-    
+
     if request.method == 'POST':
         print("IN POST NOW")
         name = request.form['name']
@@ -231,9 +230,8 @@ def update_name(sub):
         return render_template('update_name.html', user=user)
 
 
-@app.route('/update_picture/<sub>', methods=['GET', 'POST']) 
+@app.route('/update_picture/<sub>', methods=['GET', 'POST'])
 def update_picture(sub):
-
     print("Received sub:", sub)
 
     query = client.query(kind=USERS)
@@ -242,7 +240,7 @@ def update_picture(sub):
     print(request.url)
 
     print("User:", user)
-    
+
     if request.method == 'POST':
         print("IN POST NOW")
         picture = request.form['picture']
@@ -256,7 +254,7 @@ def update_picture(sub):
         print("after fetch:", user['picture'])
 
         session['user'] = user
-        
+
         sub = user['sub']
         name = user['name']
         email = user['email']
@@ -273,7 +271,6 @@ def update_picture(sub):
 
 @app.route('/delete_account/<sub>', methods=['POST', 'GET'])
 def delete_account(sub):
-    
     print("Received sub:", sub)
 
     if request.method == 'POST':
@@ -285,21 +282,22 @@ def delete_account(sub):
         print(request.url)
 
         if user is None:
-            return {'Error': 'No user with this sub exists'}, 404     
+            return {'Error': 'No user with this sub exists'}, 404
 
         user_key = user.key
-        print("User key:", user_key)  
-        
+        print("User key:", user_key)
+
         client.delete(user_key)
-        
+
         # Delete the user from Auth0
         delete_user_from_auth0(sub)
 
         return redirect(url_for('logout'))
 
     else:
-        # GET request - Render confirmation page 
+        # GET request - Render confirmation page
         return render_template('delete_confirmation.html', sub=sub)
+
 
 def delete_user_from_auth0(user_id):
     url = f"https://{DOMAIN}/api/v2/users/{user_id}"
@@ -312,12 +310,13 @@ def delete_user_from_auth0(user_id):
     else:
         print("Failed to delete user from Auth0:", response.text)
 
+
 def get_auth0_access_token():
     # Fetch an access token for the Auth0 Management API
     response = auth0.fetch_access_token()
     return response.get('access_token')
 
-  
+
 @app.route('/scores/<sub>')
 def scores(sub):
     return render_template('scores.j2', sub=sub)

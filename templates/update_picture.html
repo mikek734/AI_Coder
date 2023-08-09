@@ -1,16 +1,20 @@
+<!-- update_picture.html -->
+
+{% extends "base.html" %}
+
+{% block content %}
+
 <h2>Update Picture</h2>
 
-<p>
-  Sub: {{ user.sub }}
-</p>
+<form method="POST">
 
-<form method="POST" action="{{ url_for('update_picture', sub=user.sub) }}">
-
-  <label>Picture:</label>
+  <label>Picture URL:</label>
   <input name="picture" value="{{ user.picture }}">
 
   <button type="submit">Update</button>
 
 </form>
 
-<a href="{{ url_for('index') }}">Cancel</a>
+<a href="{{ url_for('user_profile', sub=sub) }}">Cancel</a>
+
+{% endblock %}
