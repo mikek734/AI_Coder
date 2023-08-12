@@ -28,11 +28,11 @@ def verify_jwt(request):
     if 'Authorization' in request.headers:
         auth_header = request.headers['Authorization'].split()
         token = auth_header[1]
+        print('token:', token)
     else:
         raise AuthError({"code": "no auth header",
                          "description":
                              "Authorization header is missing"}, 401)
-    print("Authorization header exists")
 
     jsonurl = urlopen("https://" + DOMAIN + "/.well-known/jwks.json")
     jwks = json.loads(jsonurl.read())

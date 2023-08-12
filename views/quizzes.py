@@ -1,17 +1,11 @@
-from flask import request, json, jsonify, redirect, render_template
+from flask import request, redirect, render_template
 from google.cloud import datastore
-from flask import Blueprint
 from authorization import *
 from datetime import datetime
-from werkzeug.datastructures import ImmutableMultiDict
-from views.questions import questions_get_post, question_to_dict, questions_delete, get_quiz_questions
+from views.questions import questions_get_post
+from constants import USERS, QUIZZES, QUESTIONS, SCORES
 
 client = datastore.Client()
-USERS = "users"
-QUIZZES = "quizzes"
-SCORES = "scores"
-QUESTIONS = "questions"
-ANSWERS = "answers"
 
 view_quizzes = Blueprint('view_quizzes', __name__)
 
@@ -20,6 +14,7 @@ view_quizzes = Blueprint('view_quizzes', __name__)
 # View all Quizzes made by User
 @view_quizzes.route('/quizzes', methods=['GET'])
 def quizzes_get():
+    print(request.headers)
     if request.method == 'GET':
         payload = verify_jwt(request)
         if not payload:

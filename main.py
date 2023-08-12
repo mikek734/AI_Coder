@@ -109,7 +109,8 @@ def callback():
         "sub": sub,
         "name": user["name"],
         "email": email,
-        "picture": user["picture"]  # Use the picture URL from the Datastore
+        "picture": user["picture"],  # Use the picture URL from the Datastore
+        "token": token["access_token"]  # Add the access token to the session
     }
 
     store_user(sub, user["name"], email, user["picture"])
@@ -232,17 +233,12 @@ def update_name(sub):
 
 @app.route('/update_picture/<sub>', methods=['GET', 'POST'])
 def update_picture(sub):
-    print("Received sub:", sub)
 
     query = client.query(kind=USERS)
     query.add_filter('sub', '=', sub)
     user = list(query.fetch())[0]
-    print(request.url)
-
-    print("User:", user)
 
     if request.method == 'POST':
-        print("IN POST NOW")
         picture = request.form['picture']
 
         user['picture'] = picture  # Update the 'name' property directly
@@ -251,7 +247,6 @@ def update_picture(sub):
         client.put(user)
 
         user = fetch_user(sub)
-        print("after fetch:", user['picture'])
 
         session['user'] = user
 
@@ -265,27 +260,22 @@ def update_picture(sub):
         return redirect(url_for('user_profile', sub=sub))
 
     else:
-        print("Sending:", user)
         return render_template('update_picture.html', user=user)
 
 
 @app.route('/delete_account/<sub>', methods=['POST', 'GET'])
 def delete_account(sub):
-    print("Received sub:", sub)
 
     if request.method == 'POST':
 
         query = client.query(kind=USERS)
         query.add_filter('sub', '=', sub)
         user = list(query.fetch())[0]
-        print("User:", user)
-        print(request.url)
 
         if user is None:
             return {'Error': 'No user with this sub exists'}, 404
 
         user_key = user.key
-        print("User key:", user_key)
 
         client.delete(user_key)
 
