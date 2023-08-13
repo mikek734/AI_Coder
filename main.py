@@ -26,7 +26,7 @@ from jose import jwt
 import jwt as pyjwt
 from functools import wraps
 from flask_mail import Mail, Message
-from config import PASSWORD, EMAIL
+#from config import PASSWORD, EMAIL
 from constants import USERS, QUIZZES, QUESTIONS, ANSWERS, SCORES, CLIENT_ID, CLIENT_SECRET, DOMAIN
 from views.quizzes import view_quizzes
 from views.scores import view_scores
@@ -62,8 +62,8 @@ auth0 = oauth.register(
 # Flask-Mail configuration
 app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
 app.config['MAIL_PORT'] = 2525
-app.config['MAIL_USERNAME'] = EMAIL
-app.config['MAIL_PASSWORD'] = PASSWORD
+# app.config['MAIL_USERNAME'] = EMAIL
+# app.config['MAIL_PASSWORD'] = PASSWORD
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 

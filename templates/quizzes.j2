@@ -1,61 +1,248 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
-<div lass="quiz-header"c>
-  <h1>Quizzes</h1>
-
-  <button onclick="location.href='{{ url_for('user_profile') }}'" type="button">View Profile</button>
-  <button onclick="location.href='{{ url_for('view_quizzes.quizzes_post') }}'" type="button">Create Quiz</button>
-
+<div class="quiz-header">
+  <div class="header">
+    <h1>{{ user.name }}'s Quiz Dashboard</h1>
+    <div class="profile-buttons">
+      <button onclick="location.href='{{ url_for('user_profile') }}'" type="button">View Profile</button>
+      <button onclick="location.href='{{ url_for('view_quizzes.quizzes_post') }}'" type="button">Create Quiz</button>
+      <p class="signed-in-text">Signed in as {{ user.email }}</p>
+    </div>
+  </div>
+  <div class="description">
+    <p>Explore and manage the quizzes you've created</p>
+  </div>
+  <img src="{{ user.picture }}" alt="Profile Picture" class="profile-picture">
+  <div class="search-bar">
+    <input type="text" id="quiz-search" placeholder="Search by Quiz Name">
+    <button id="search-button">Search</button>
+  </div>
 </div>
 <br>
-<table class="quiz-table">
-  <tr>
-    <th>Name</th>
-    <th>Questions</th>
-    <th>Last Modified</th>
-    <th>Scores</th>
-    <th>Edit</th>
-    <th>Share</th>
-  </tr>
 
+<div class="filter-bar">
+  <label for="sort-select">View by Last Modified Date:</label>
+  <select id="sort-select">
+    <option value="desc">Newest</option>
+    <option value="asc">Oldest</option>
+  </select>
+</div>
+
+<div class="quiz-cards-container">
   {% for quiz in quizzes %}
-  <tr>
-    <td>
-      <a href="{{ url_for('view_questions.get_quiz_questions', quiz_id=quiz.id) }}">
-        {{ quiz.QuizName }}
-      </a>
-    </td>
-    <td>{{ quiz.NumberOfQuestions }}</td>
-    <td>{{ quiz.LastModified }}</td>
-    <td>
-      <a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz.id) }}">
-        View Scores
-      </a>
-    </td>
-    <td>
-      <button onclick="location.href='{{ url_for('view_quizzes.quizzes_delete_put_patch', quiz_id=quiz.id) }}'" type="button">Edit</button>
-    </td>
-    <td>
-      <button onclick="openPopup('{{ quiz.id }}', '{{ quiz.QuizName }}')" type="button">Share</button>
-    </td>
-  </tr>
+  <div class="quiz-card" data-last-modified="{{ quiz.LastModified }}">
+    <h2><a href="{{ url_for('view_questions.get_quiz_questions', quiz_id=quiz.id) }}">{{ quiz.QuizName }}</a></h2>
+    <div class="quiz-details">
+      <p>{{ quiz.NumberOfQuestions }} Questions</p>
+      <p>Last Modified: {{ quiz.LastModified }}</p>
+      <p><a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz.id) }}">View Scores</a></p>
+    </div>
+    <div class="action-buttons">
+      <button class="edit-button" onclick="location.href='{{ url_for('view_quizzes.quizzes_delete_put_patch', quiz_id=quiz.id) }}'" type="button">Edit</button>
+      <button class="share-button" onclick="openPopup('{{ quiz.id }}', '{{ quiz.QuizName }}')" type="button">Share</button>
+    </div>
+  </div>
   {% endfor %}
-
-</table>
+</div>
 
 <div id="emailPopup" class="email-popup">
-  <div class="email-popup-content">
-    <span onclick="closePopup()" class="close-button">&times;</span>
-    <h2>Share Quiz</h2>
-    <input type="email" id="recipientEmail" placeholder="Recipient's email">
-    <button onclick="sendEmail()" id="sendButton">Send</button>
-  </div>
+  <!-- Popup content for sharing -->
 </div>
 
 <script>
-  var quizUrl = "{{ url_for('add_authorization', url='quizzes') }}";
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchButton = document.getElementById('search-button');
+    const quizCardsContainer = document.querySelector('.quiz-cards-container');
+
+    searchButton.addEventListener('click', function() {
+      const searchInput = document.getElementById('quiz-search').value.toLowerCase();
+      const quizCards = quizCardsContainer.querySelectorAll('.quiz-card');
+
+      quizCards.forEach(function(quizCard) {
+        const quizName = quizCard.querySelector('h2').textContent.toLowerCase();
+        if (quizName.includes(searchInput)) {
+          quizCard.style.display = 'block';
+        } else {
+          quizCard.style.display = 'none';
+        }
+      });
+    });
+  });
 </script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const sortSelect = document.getElementById('sort-select');
+    const quizCardsContainer = document.querySelector('.quiz-cards-container');
+    const quizCards = Array.from(quizCardsContainer.querySelectorAll('.quiz-card'));
+
+    sortSelect.addEventListener('change', function() {
+      const selectedSort = sortSelect.value;
+
+      quizCards.sort(function(a, b) {
+        const dateA = parseDateString(a.dataset.lastModified);
+        const dateB = parseDateString(b.dataset.lastModified);
+
+        if (selectedSort === 'asc') {
+          return dateA - dateB;
+        } else if (selectedSort === 'desc') {
+          return dateB - dateA;
+        }
+      });
+
+      quizCardsContainer.innerHTML = '';
+      quizCards.forEach(function(card) {
+        quizCardsContainer.appendChild(card);
+      });
+    });
+
+  function parseDateString(dateString) {
+    if (!dateString) {
+      return new Date(); // Return current date as a default
+    }
+
+    const parts = dateString.split(' ');
+    if (parts.length !== 2) {
+      return new Date(); // Return current date as a default
+    }
+
+    const [datePart, timePart] = parts;
+    const [month, day, year] = datePart.split('/');
+    const [hours, minutes, seconds] = timePart.split(':');
+
+    return new Date(year, month - 1, day, hours, minutes, seconds);
+  }
+  });
+</script>
+
+
+<style>
+
+  /* Style for the quiz header */
+  .quiz-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f3f3f3;
+    padding: 10px 20px;
+    border-radius: 10px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Style for the profile picture */
+  .profile-picture {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+    margin-left: auto;
+  }
+
+  /* Style for the profile buttons */
+  .profile-buttons {
+    display: flex;
+    gap: 10px;
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  /* Style for the signed-in text */
+  .signed-in-text {
+    font-size: 12px; /* Adjust the font size as needed */
+    color: #666;
+    margin-top: 2px;
+  }
+
+  /* Style for the description */
+  .description {
+    margin-left: auto;
+  }
+
+  /* Style for the search bar */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+  }
+
+  .search-bar input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+
+  .search-bar button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .search-bar button:hover {
+    background-color: #0056b3;
+  }
+
+  .quiz-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .quiz-card {
+    border: 4px #ccc;
+    padding: 20px;
+    width: 300px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .quiz-card h2 {
+    margin-top: 0;
+    color: #333;
+    white-space: nowrap; /* Prevent text from wrapping */
+    overflow: hidden; /* Hide overflowing text */
+    text-overflow: ellipsis; /* Show ellipsis for truncated text */
+  }
+
+  .quiz-details p {
+    margin: 10px 0;
+    color: #666;
+  }
+
+  .quiz-details a {
+    color: #007bff;
+    text-decoration: none;
+  }
+
+  .action-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+  }
+
+  .edit-button, .share-button {
+    background-color: orange;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .edit-button:hover, .share-button:hover {
+    background-color: darkorange;
+  }
+
+  /* Style for the profile buttons */
+  .profile-buttons {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+  }
+</style>
 
 {% endblock %}

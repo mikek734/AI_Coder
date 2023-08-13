@@ -1,11 +1,22 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div>
+<div class="search-sidebar">
+
+  <h2>Find a Score</h2>
+
+  <input type="text" id="name-filter" placeholder="Search by name">
+
+  <button id="search-btn">Search</button>
+
+</div>
+
+<div class="main-content">
   <h1>All Scores for Quiz: {{ quiz_name }}</h1>
   <button onclick="location.href='{{ url_for('user_profile') }}'" type="button">View Profile</button>
   <button onclick="location.href='{{ url_for('add_authorization', url='quizzes') }}'" type="button">View Quizzes</button>
 </div>
+<div class="main-content">
 <table class="quiz-table">
   <thead>
     <tr>
@@ -44,8 +55,105 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
+
+<div class="main-content">
+  <h1>{{quiz_name}} Score Chart</h1>
+  <div id="scatter-container" class="scatter-chart-container">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <canvas id="scatter-chart" width="800" height="400"></canvas>
+  </div>
+</div>
 
 <script>
+// Create a function to generate the scatter plot
+function createScatterPlot(scores) {
+  const labels = scores.map(score => score.CandidateName);
+  const data = scores.map(score => ({
+    x: parseFloat(score.PercentScore.replace('%', '')),
+    y: parseFloat(score.PercentScore.replace('%', '')),
+    name: score.CandidateName,
+    percent: score.PercentScore // Add the percent score as a property
+  }));
+
+  const ctx = document.getElementById('scatter-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Candidates',
+        data: data,
+        backgroundColor: 'rgba(75, 192, 192, 0.6)', // Adjust as needed
+        borderColor: 'rgba(75, 192, 192, 1)', // Adjust as needed
+        borderWidth: 1,
+        pointRadius: 8, // Adjust the point size
+        pointHoverRadius: 10 // Adjust the point size on hover
+      }]
+    },
+    options: {
+      scales: {
+        x: {
+          type: 'linear',
+          position: 'bottom',
+          title: {
+            display: true,
+            text: 'Percent Score'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Percent Score'
+          }
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            // Customize tooltip text to show candidate's name and percent score
+            label: function(context) {
+              const candidate = data[context.dataIndex];
+              return `${candidate.name}: ${candidate.percent}`;
+            }
+          }
+        }
+      },
+      responsive: false, // Allow the chart to be responsive
+      maintainAspectRatio: false, // Allow the aspect ratio to change
+    }
+  });
+}
+
+// Call the function to create the scatter plot after the document loads
+document.addEventListener('DOMContentLoaded', () => {
+  const scores = JSON.parse('{{ scores|tojson|safe }}'); // Convert scores to a JavaScript array
+  createScatterPlot(scores);
+});
+
+  const filterTable = () => {
+
+    const query = document.getElementById('name-filter').value;
+
+    const rows = document.querySelectorAll('tbody tr');
+
+    console.log(query);
+
+    rows.forEach(row => {
+      const nameCell = row.firstElementChild;
+
+      console.log(nameCell.textContent);
+
+      if (nameCell.textContent.includes(query)) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    })
+
+  }
+
+  document.getElementById('search-btn').addEventListener('click', filterTable);
+
   // Store the current sorting state for each column
   const sortState = { 0: 'asc', 1: 'asc', 2: 'asc', 3: 'asc' };
 

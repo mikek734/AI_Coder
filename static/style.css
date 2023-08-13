@@ -8,7 +8,6 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh; /* Ensures the gradient covers the entire viewport height */
-    overflow: hidden;
 }
 
 header, footer {
@@ -166,4 +165,43 @@ input[name*="QuestionText"] {
 /* Make the Answer input fields wider */
 input[name*="answers"] {
     width: 14%; /* Adjust as needed */
+}
+
+.content-wrapper {
+  overflow: auto;
+}
+
+.search-sidebar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 200px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+input,
+button {
+  margin-bottom: 10px;
+}
+
+.search-sidebar h2 {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.main-content {
+  margin-left: 200px;
+}
+
+/* Center the scatter chart container horizontally and vertically */
+.scatter-chart-container {
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
 }

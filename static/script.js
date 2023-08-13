@@ -35,3 +35,55 @@ function sendEmail() {
     alert('Please enter a recipient email address');
   }
 }
+
+var start;
+
+// Function to set the value of the input field with the timestamp when the page finishes loading
+function setLoadTimeInput() {
+    start = new Date().getTime(); // Get the current timestamp in milliseconds
+}
+
+// Call the setLoadTimeInput function when the page finishes loading
+window.addEventListener('load', setLoadTimeInput);
+
+// Function to convert seconds to hours, minutes, and seconds
+function secondsToHoursMinutesSeconds(seconds) {
+    var hours = Math.floor(seconds / 3600);
+    var remainingSeconds = seconds % 3600;
+    var minutes = Math.floor(remainingSeconds / 60);
+    var secs = remainingSeconds % 60;
+    // Create the formatted time string, removing parts where the value is 0
+    var timeString = '';
+    if (hours > 0) {
+        timeString += hours + ' hours ';
+    }
+    if (minutes > 0) {
+        timeString += minutes + ' minutes ';
+    }
+    if (secs > 0 || (hours === 0 && minutes === 0)) {
+        timeString += secs + ' seconds';
+    }
+
+    return timeString;
+}
+
+// Event listener for form submission
+document.getElementById('quiz-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Calculate the time difference between the current timestamp and the timestamp when the page was loaded
+    var end = new Date().getTime();
+    var timeSpentSeconds = Math.floor((end - start) / 1000); // Calculate time difference in seconds
+
+    // Convert seconds to hours, minutes, and seconds
+    var timeSpentFormatted = secondsToHoursMinutesSeconds(timeSpentSeconds);
+
+    // Set the value of the hidden input field with the time difference in hours, minutes, and seconds
+    document.getElementById('timeTaken').value = timeSpentFormatted;
+
+    // Uncomment the following line to submit the form without AJAX
+    this.submit();
+
+    // Now you can submit the form or handle the timeSpentFormatted value as needed
+});
+

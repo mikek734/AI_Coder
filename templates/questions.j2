@@ -1,28 +1,111 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1 class=center-content> {{ quiz_name }}</h1>
-    <form class=center-content id="quiz-form" action="/quizzes/{{ quiz.id }}" method="post">
+<div class="quiz-header">
+    <h1 class="center-content">{{ quiz_name }}</h1>
+    <p class="expectations">
+  Begin the exam by answering the multiple-choice questions below. Take your time and choose the best answers for
+        each question. When you're done, click the orange "Submit" button to complete the exam.</p>
+  </div>
+</div>
+<div class="quiz-container">
+    <form id="quiz-form" action="/quizzes/{{ quiz.id }}" method="post">
         <input type="hidden" id="timeTaken" name="timeTaken">
         {% set ns = namespace(count=0) %}
         {% for question in questions %}
         {% set ns.count = ns.count + 1 %}
-        <div>
+        <div class="question-container">
             <h3>{{ ns.count }}. {{ question.QuestionText }}</h3>
             {% for option in question.AnswerChoices %}
-            <div>
+            <div class="answer-option">
                 <input type="radio" id="{{ option }}" name="{{ question.id }}" value="{{ loop.index }}" required>
                 <label for="{{ option }}">{{ option }}</label>
             </div>
             {% endfor %}
         </div>
         {% endfor %}
-        <br>
-        <label for="CandidateName">Your Name: </label>
-        <input type="text" id="CandidateName" name="CandidateName" required>
-        <br>
-        <br>
-        <input type="submit" value="Submit">
+        <div class="input-container">
+                <p class="expectations">
+         Your score will be
+        sent to the employer and you will be contacted with further information should you be selected to move
+        forward. Good luck!
+    </p>
+            <label for="CandidateName">Candidate Name:</label>
+        </div>
+        <div class="input-container">
+            <input type="text" id="CandidateName" name="CandidateName" required>
+        </div>
+        <div class="submit-container">
+          <input type="submit" value="Submit" class="submit-button">
+        </div>
     </form>
+</div>
+<style>
+  /* Style for the header */
+  .quiz-header {
+    background-color: #f7f7f7; /* Header background color */
+    padding: 20px 0;
+    text-align: center;
+  }
+
+  /* Style for the quiz container */
+  .quiz-container {
+    background-color: #f7f7f7; /* Quiz container background color */
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin: 20px auto;
+    max-width: 800px; /* Set a maximum width for centering */
+  }
+
+  /* Style for question container */
+  .question-container {
+    background-color: white; /* Question container background color */
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+
+  /* Style for answer options */
+  .answer-option {
+    margin: 5px 0;
+  }
+
+  /* Style for input container */
+  .input-container {
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  /* Style for submit container */
+  .submit-container {
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  /* Style for the submit button */
+  .submit-button {
+    background-color: orange; /* Orange background color */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .submit-button:hover {
+    background-color: darkorange;
+  }
+
+  /* Style for the description */
+  .expectations {
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    margin-top: 10px;
+  }
+</style>
 {% endblock %}
 
     {% block scripts %}

@@ -35,7 +35,7 @@ def quizzes_get():
                     if user["sub"] == quiz["UserID"]:
                         results.append(quiz)
 
-                return render_template("quizzes.j2", quizzes=results), 200
+                return render_template("quizzes.j2", quizzes=results, user=user), 200
         return redirect("/"), 201
 
 
@@ -162,8 +162,15 @@ def quizzes_delete_put_patch(quiz_id):
         data = request.form
         questions = []
 
+        quiz_key = client.key(QUIZZES, int(quiz_id))
+        quiz = client.get(quiz_key)
+
         # Process delete flags first
         for key, value in data.items():
+            if key == 'QuizName':
+                quiz_name = value
+                quiz['QuizName'] = quiz_name
+                client.put(quiz)
             if '[delete]' in key and value == 'true':
                 question_id_str = key.split('[')[1].split(']')[0]
                 question_id = int(question_id_str)
@@ -173,8 +180,6 @@ def quizzes_delete_put_patch(quiz_id):
         num_questions = len([key for key in data.keys() if '[QuestionText]' in key])
 
         # Update the Quiz entity with the new NumberOfQuestions value
-        quiz_key = client.key(QUIZZES, int(quiz_id))
-        quiz = client.get(quiz_key)
         quiz['NumberOfQuestions'] = num_questions  # Update the attribute
         client.put(quiz)  # Save the changes
 
