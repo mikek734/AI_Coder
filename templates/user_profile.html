@@ -20,16 +20,13 @@
         <p>
             Email: {{ user.email }}
         </p>
-
-        <a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz_id) }}">Scores</a>
-        <br><br>
+        <br>
         <!-- Modified Quizzes link to call sendRequest function -->
         <a href="{{ url_for('add_authorization', url='quizzes') }}" id="getQuizzesButton">Quizzes</a>
+        <br>
+        <p><a href="/logout">Logout</a></p>
         <br><br>
         <a href="{{ url_for('delete_account', sub=user.sub) }}">Delete Account</a>
-        <br><br>
-
-        <p><a href="/logout">Logout</a></p>
         <div><pre>{{pretty}}</pre></div>
     </div>
 
