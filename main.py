@@ -333,7 +333,7 @@ app.register_blueprint(authorization.auth_bp)
 
 @app.route('/send_email/<quiz_id>/<quiz_name>/<to_email>', methods=['GET'])
 def send_email(quiz_id, quiz_name, to_email):
-    quiz_url = request.url_root + 'quizzes/' + str(quiz_id)
+    quiz_url = request.url_root + 'quizzes/' + str(quiz_id) + '/questions'
     msg = Message('Technical Job Quiz', sender=EMAIL, recipients=[to_email])
     msg.html = f'<p>Someone at AI Coder has requested that you take the {quiz_name} quiz to test your ' \
                f'programming capabilities for employment.</p>' \

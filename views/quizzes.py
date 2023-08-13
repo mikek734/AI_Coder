@@ -42,6 +42,7 @@ def quizzes_get():
 # ROUTE WHERE CANDIDATE TAKES THE QUIZ
 @view_quizzes.route('/quizzes/<quiz_id>', methods=['POST', 'GET'])
 def quizzes_get_quiz(quiz_id):
+    print("Inside quizzes_get_quiz route")
     # This is what the candidate does when hitting 'Submit Quiz'
     if request.method == 'POST':
 
