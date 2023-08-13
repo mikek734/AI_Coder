@@ -88,7 +88,6 @@ def login():
 @app.route("/callback", methods=["GET", "POST"])
 def callback():
     token = oauth.auth0.authorize_access_token()
-    print("Token: ", token)
 
     sub = token['userinfo']['sub']
     email = token['userinfo']['email']
@@ -110,7 +109,7 @@ def callback():
         "name": user["name"],
         "email": email,
         "picture": user["picture"],  # Use the picture URL from the Datastore
-        "token": token["access_token"]  # Add the access token to the session
+        "token": token["id_token"]  # Add the access token to the session
     }
 
     store_user(sub, user["name"], email, user["picture"])
@@ -150,8 +149,6 @@ def user_profile():
     if not user:
         # User is not logged in or session expired
         return redirect(url_for('login'))
-
-    print("User:", user)
 
     return render_template('user_profile.html', user=user)
 
@@ -195,17 +192,12 @@ def fetch_user(sub):
 # CLAUDE (WEEK4)
 @app.route('/update_name/<sub>', methods=['GET', 'POST'])
 def update_name(sub):
-    print("Received sub:", sub)
 
     query = client.query(kind=USERS)
     query.add_filter('sub', '=', sub)
     user = list(query.fetch())[0]
-    print(request.url)
-
-    print("User:", user)
 
     if request.method == 'POST':
-        print("IN POST NOW")
         name = request.form['name']
 
         user['name'] = name  # Update the 'name' property directly
@@ -214,7 +206,6 @@ def update_name(sub):
         client.put(user)
 
         user = fetch_user(sub)
-        print("after fetch:", user['name'])
 
         session['user'] = user
 
@@ -227,7 +218,6 @@ def update_name(sub):
 
         return redirect(url_for('user_profile', sub=sub))
     else:
-        print("Sending:", user)
         return render_template('update_name.html', user=user)
 
 
@@ -305,6 +295,23 @@ def get_auth0_access_token():
     # Fetch an access token for the Auth0 Management API
     response = auth0.fetch_access_token()
     return response.get('access_token')
+
+
+@app.route('/auth/<url>', methods=['GET'])
+def add_authorization(url):
+    token = session['user']['token']
+    headers = {'Authorization': f'Bearer {token}'}
+
+    # Build the URL using request.url_root and the desired path
+    application_url = request.url_root + url
+
+    response = requests.get(application_url, headers=headers)
+
+    if response.status_code == 200:
+        # Return the HTML content directly
+        return make_response(response.text), 200
+    else:
+        return redirect("/")
 
 
 @app.route('/scores/<sub>')

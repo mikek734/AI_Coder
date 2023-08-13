@@ -14,7 +14,6 @@ view_quizzes = Blueprint('view_quizzes', __name__)
 # View all Quizzes made by User
 @view_quizzes.route('/quizzes', methods=['GET'])
 def quizzes_get():
-    print(request.headers)
     if request.method == 'GET':
         payload = verify_jwt(request)
         if not payload:
@@ -27,9 +26,7 @@ def quizzes_get():
         all_users = []
         users = list(user_query.fetch())
         all_users.extend(users)
-        print(f'all users: {all_users}')
         for user in all_users:
-            print(f'This is a user: {user}')
             if user["sub"] == payload["sub"]:
                 quiz_query = client.query(kind=QUIZZES)
                 quizzes = list(quiz_query.fetch())

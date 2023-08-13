@@ -17,10 +17,11 @@
         </div>
         <button type="button" id="addQuestion">Add Question</button>
         <button type="submit">Submit Quiz</button>
-        <button onclick="location.href='{{ url_for('view_quizzes.quizzes_get') }}'" type="button">Cancel</button>
+        <button onclick="location.href='{{ url_for('add_authorization', url='quizzes') }}'" type="button">Cancel</button>
     </form>
 
     <script>
+        var token = "{{ session['user']['token'] }}";
         var answerCount = 0;
         $(document).ready(function() {
             var questionCount = 0;
@@ -70,10 +71,13 @@
                 $.ajax({
                   url: '/quizzes/add',
                   method: 'POST',
+                  headers: {
+                    'Authorization': 'Bearer ' + token
+                  },
                   data: formData,
                   success: function(response) {
                     // Handle success
-                    window.location.href = '/quizzes';
+                    window.location.href = '/auth/quizzes';
                   }
                 });
             });

@@ -24,7 +24,7 @@
         <a href="{{ url_for('view_scores.get_post_scores', quiz_id=quiz_id) }}">Scores</a>
         <br><br>
         <!-- Modified Quizzes link to call sendRequest function -->
-        <a href="javascript:void(0);" onclick="sendRequest()" id="getQuizzesButton">Quizzes</a>
+        <a href="{{ url_for('add_authorization', url='quizzes') }}" id="getQuizzesButton">Quizzes</a>
         <br><br>
         <a href="{{ url_for('delete_account', sub=user.sub) }}">Delete Account</a>
         <br><br>
@@ -33,37 +33,6 @@
         <div><pre>{{pretty}}</pre></div>
     </div>
 
-    <!-- JavaScript code to send request -->
-    <script>
-        function sendRequest() {
-            const url = '{{ url_for('view_quizzes.quizzes_get') }}';
-            const token = '{{ user.token }}';
-            const headers = new Headers({
-                'Authorization': 'Bearer ' + token
-            });
-
-            // Create the request options, including the headers
-            const requestOptions = {
-                method: 'GET',
-                headers: headers
-            };
-
-            // Make the GET request with the specified options
-            fetch(url, requestOptions)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log("Data received:", data);
-            })
-            .catch(error => {
-                console.error("Fetch Error:", error);
-            }); // This was missing
-        }
-    </script>
 </body>
 
 {% endblock %}

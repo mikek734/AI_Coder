@@ -28,7 +28,6 @@ def verify_jwt(request):
     if 'Authorization' in request.headers:
         auth_header = request.headers['Authorization'].split()
         token = auth_header[1]
-        print('token:', token)
     else:
         raise AuthError({"code": "no auth header",
                          "description":
@@ -36,25 +35,19 @@ def verify_jwt(request):
 
     jsonurl = urlopen("https://" + DOMAIN + "/.well-known/jwks.json")
     jwks = json.loads(jsonurl.read())
-    print("JWKS")
-    print(jwks)
     try:
         unverified_header = jwt.get_unverified_header(token)
-        print("UNVERIFIED_HEADER")
-        print(unverified_header)
     except jwt.JWTError:
         raise AuthError({"code": "invalid_header",
                          "description":
                              "Invalid header. "
                              "Use an RS256 signed JWT Access Token"}, 401)
-    print("Authorization header valid")
 
     if unverified_header["alg"] == "HS256":
         raise AuthError({"code": "invalid_header",
                          "description":
                              "Invalid header. "
                              "Use an RS256 signed JWT Access Token"}, 401)
-    print("Authorization header not HS256")
 
     rsa_key = {}
     for key in jwks["keys"]:
@@ -91,13 +84,8 @@ def verify_jwt(request):
                                  "Unable to parse authentication"
                                  " token."}, 401)
 
-        print("token not expired")
-        print("claims valid")
-        print("authentication parsed")
-
         return payload
     else:
-        print("no RSA key")
         raise AuthError({"code": "no_rsa_key",
                          "description":
                              "No RSA key in JWKS"}, 401)
@@ -108,5 +96,3 @@ def verify_jwt(request):
 def decode_jwt():
     payload = verify_jwt(request)
     return payload
-
-# NOT BING: END
