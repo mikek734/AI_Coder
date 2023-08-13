@@ -47,8 +47,17 @@
 </div>
 
 <div id="emailPopup" class="email-popup">
-  <!-- Popup content for sharing -->
+  <div class="email-popup-content">
+    <span onclick="closePopup()" class="close-button">&times;</span>
+    <h2>Share Quiz</h2>
+    <input type="email" id="recipientEmail" placeholder="Recipient's email">
+    <button onclick="sendEmail()" id="sendButton">Send</button>
+  </div>
 </div>
+
+<script>
+  var quizUrl = "{{ url_for('add_authorization', url='quizzes') }}";
+</script>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
