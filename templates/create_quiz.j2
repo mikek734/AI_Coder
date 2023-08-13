@@ -21,6 +21,7 @@
     </form>
 
     <script>
+        var redirectUrl = "{{ url_for('add_authorization', url='quizzes') }}";
         var token = "{{ session['user']['token'] }}";
         var answerCount = 0;
         $(document).ready(function() {
@@ -77,7 +78,7 @@
                   data: formData,
                   success: function(response) {
                     // Handle success
-                    window.location.href = '/auth/quizzes';
+                    window.location.href = redirectUrl;
                   }
                 });
             });

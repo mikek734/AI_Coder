@@ -154,23 +154,23 @@ def user_profile():
 
 
 def store_user(sub, name, email, picture):
-    # Check if user already exists in Datastore
-    query = client.query(kind=USERS)
-    query.add_filter("sub", "=", sub)
-    existing_user = list(query.fetch())
+    # Create a key using the 'sub' value as the ID
+    key = client.key(USERS, sub)
 
-    # Create or update the user entity
-    user_entity = None
-    if existing_user:
-        user_entity = existing_user[0]
-    else:
-        user_entity = datastore.Entity(key=client.key(USERS))
+    # Check if user already exists in Datastore
+    user_entity = client.get(key)
+
+    if user_entity is None:
+        # If the user doesn't exist, create a new entity with the key
+        user_entity = datastore.Entity(key=key)
         user_entity["sub"] = sub
 
+    # Update the user's details
     user_entity["name"] = name
     user_entity["email"] = email
     user_entity["picture"] = picture
 
+    # Save the user entity to the Datastore
     client.put(user_entity)
 
 
